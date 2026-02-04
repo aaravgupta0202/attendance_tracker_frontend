@@ -1,24 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Attendance Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendSwipe • Dashboard</title>
+    <meta name="description" content="Swipe-based attendance tracker for students">
+    <meta name="theme-color" content="#6366f1">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="assets/icons/icon-72.png">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    
+    <!-- Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- App Container -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <button class="icon-btn menu-btn" id="menuBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="app-title">
+                        <span class="title-icon">📊</span>
+                        <span>AttendSwipe</span>
+                    </h1>
+                </div>
+                <div class="header-right">
+                    <button class="icon-btn" id="todayBtn" title="Today">
+                        <i class="fas fa-calendar-day"></i>
+                    </button>
+                    <button class="icon-btn" id="settingsBtn" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="date-display">
+                <span id="currentDate">Loading...</span>
+                <span class="day-badge" id="dayBadge">Day 1</span>
+            </div>
+        </header>
 
-<header>
-  <h1>Today's Classes</h1>
-  <nav>
-    <a href="setup.html">Setup</a>
-    <a href="stats.html">Stats</a>
-  </nav>
-</header>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Setup Prompt -->
+            <div class="setup-prompt" id="setupPrompt">
+                <div class="setup-icon">
+                    <i class="fas fa-sliders-h"></i>
+                </div>
+                <h2>Welcome to AttendSwipe!</h2>
+                <p>Set up your subjects and timetable to get started.</p>
+                <a href="setup.html" class="btn btn-primary">
+                    <i class="fas fa-cog"></i> Go to Setup
+                </a>
+            </div>
 
-<main id="classContainer"></main>
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <h3>No classes today</h3>
+                <p>Enjoy your day off! Check back tomorrow.</p>
+                <button class="btn btn-outline" id="viewWeekBtn">
+                    <i class="fas fa-calendar-week"></i> View Weekly Schedule
+                </button>
+            </div>
 
-<script src="js/storage.js"></script>
-<script src="js/dashboard.js"></script>
+            <!-- Classes Container -->
+            <div class="classes-container" id="classesContainer">
+                <div class="class-header">
+                    <h3>Today's Classes</h3>
+                    <div class="class-count">
+                        <span id="classCount">0</span> classes
+                    </div>
+                </div>
+                
+                <div class="classes-list" id="classesList">
+                    <!-- Cards will be injected here by JavaScript -->
+                </div>
+
+                <!-- Swipe Instructions -->
+                <div class="swipe-instructions">
+                    <div class="instruction">
+                        <div class="swipe-demo swipe-right">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <span>Swipe right for attended</span>
+                    </div>
+                    <div class="instruction">
+                        <div class="swipe-demo swipe-left">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <span>Swipe left for missed</span>
+                    </div>
+                    <div class="instruction">
+                        <div class="swipe-demo swipe-tap">
+                            <i class="fas fa-ban"></i>
+                        </div>
+                        <span>Tap for cancelled</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-outline" id="undoBtn" disabled>
+                    <i class="fas fa-undo"></i> Undo Last
+                </button>
+                <button class="btn btn-primary" id="markAllBtn">
+                    <i class="fas fa-check-double"></i> Mark All Present
+                </button>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item active">
+                <i class="fas fa-home"></i>
+                <span>Today</span>
+            </a>
+            <a href="stats.html" class="nav-item">
+                <i class="fas fa-chart-bar"></i>
+                <span>Stats</span>
+            </a>
+            <a href="setup.html" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Setup</span>
+            </a>
+        </nav>
+
+        <!-- Side Menu -->
+        <div class="side-menu" id="sideMenu">
+            <div class="menu-header">
+                <h3>Menu</h3>
+                <button class="icon-btn close-menu" id="closeMenu">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="menu-items">
+                <a href="index.html" class="menu-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="stats.html" class="menu-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Statistics</span>
+                </a>
+                <a href="setup.html" class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Setup</span>
+                </a>
+                <div class="menu-divider"></div>
+                <button class="menu-item" id="exportData">
+                    <i class="fas fa-download"></i>
+                    <span>Export Data</span>
+                </button>
+                <button class="menu-item" id="importData">
+                    <i class="fas fa-upload"></i>
+                    <span>Import Data</span>
+                </button>
+                <button class="menu-item" id="resetData">
+                    <i class="fas fa-trash"></i>
+                    <span>Reset All Data</span>
+                </button>
+            </div>
+            <div class="menu-footer">
+                <div class="app-version">v1.0.0</div>
+                <div class="storage-info">
+                    <i class="fas fa-database"></i>
+                    <span id="storageUsage">0% used</span>
+                </div>
+            </div>
+        </div>
+        <div class="menu-overlay" id="menuOverlay"></div>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,23 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Stats</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendSwipe • Statistics</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="index.html" class="icon-btn back-btn">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <h1 class="app-title">
+                        <span class="title-icon">📈</span>
+                        <span>Statistics</span>
+                    </h1>
+                </div>
+                <div class="header-right">
+                    <button class="icon-btn" id="exportStatsBtn" title="Export">
+                        <i class="fas fa-file-export"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
 
-<header>
-  <h1>Attendance Stats</h1>
-  <nav>
-    <a href="index.html">Dashboard</a>
-  </nav>
-</header>
+        <!-- Main Content -->
+        <main class="main-content stats-content">
+            <!-- Overview Cards -->
+            <div class="stats-overview">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #e3f2fd;">
+                        <i class="fas fa-chart-line" style="color: #2196f3;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="totalClasses">0</div>
+                        <div class="stat-label">Total Classes</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #e8f5e9;">
+                        <i class="fas fa-check-circle" style="color: #4caf50;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="attendedClasses">0</div>
+                        <div class="stat-label">Attended</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #fff3e0;">
+                        <i class="fas fa-percentage" style="color: #ff9800;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="overallPercentage">0%</div>
+                        <div class="stat-label">Overall</div>
+                    </div>
+                </div>
+            </div>
 
-<main id="statsContainer"></main>
+            <!-- Subject Performance -->
+            <div class="section">
+                <div class="section-header">
+                    <h3><i class="fas fa-book"></i> Subject Performance</h3>
+                    <select class="form-control-sm" id="sortBy">
+                        <option value="name">Sort by Name</option>
+                        <option value="percentage">Sort by Percentage</option>
+                        <option value="risk">Sort by Risk Level</option>
+                    </select>
+                </div>
+                <div class="subject-stats" id="subjectStats">
+                    <!-- Subject cards will be added here -->
+                </div>
+            </div>
 
-<script src="js/storage.js"></script>
-<script src="js/stats.js"></script>
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4><i class="fas fa-chart-pie"></i> Attendance Distribution</h4>
+                    </div>
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4><i class="fas fa-chart-bar"></i> Weekly Pattern</h4>
+                    </div>
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Insights -->
+            <div class="section">
+                <div class="section-header">
+                    <h3><i class="fas fa-lightbulb"></i> Insights & Predictions</h3>
+                </div>
+                <div class="insights-grid">
+                    <div class="insight-card critical">
+                        <div class="insight-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="insight-content">
+                            <h4>At Risk Subjects</h4>
+                            <div class="insight-list" id="riskSubjects">
+                                <!-- Risk subjects will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="insight-card safe">
+                        <div class="insight-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="insight-content">
+                            <h4>Safe to Miss</h4>
+                            <div class="insight-list" id="safeToMiss">
+                                <!-- Safe miss info will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar View -->
+            <div class="section">
+                <div class="section-header">
+                    <h3><i class="fas fa-calendar"></i> Monthly Overview</h3>
+                    <div class="month-nav">
+                        <button class="icon-btn" id="prevMonth">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="currentMonth">March 2024</span>
+                        <button class="icon-btn" id="nextMonth">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="calendar">
+                    <!-- Calendar will be generated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Data Management -->
+            <div class="section">
+                <div class="section-header">
+                    <h3><i class="fas fa-database"></i> Data Management</h3>
+                </div>
+                <div class="data-actions">
+                    <button class="btn btn-outline" id="backupBtn">
+                        <i class="fas fa-download"></i> Backup Data
+                    </button>
+                    <button class="btn btn-outline" id="restoreBtn">
+                        <i class="fas fa-upload"></i> Restore Data
+                    </button>
+                    <button class="btn btn-danger" id="clearDataBtn">
+                        <i class="fas fa-trash"></i> Clear All Data
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Today</span>
+            </a>
+            <a href="stats.html" class="nav-item active">
+                <i class="fas fa-chart-bar"></i>
+                <span>Stats</span>
+            </a>
+            <a href="setup.html" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Setup</span>
+            </a>
+        </nav>
+
+        <!-- Toast -->
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/stats.js"></script>
 </body>
 </html>
