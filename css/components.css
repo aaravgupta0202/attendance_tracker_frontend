@@ -796,3 +796,104 @@
     background: var(--danger);
     color: white;
 }
+
+/* Add these styles to fix drag and drop */
+
+/* Day column drop zone improvements */
+.day-column {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    border: 2px dashed var(--gray-300);
+    min-height: 150px;
+    transition: all var(--transition-fast);
+}
+
+.day-column.drag-over {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    border-style: solid;
+    transform: scale(1.02);
+}
+
+.day-subject {
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    text-align: center;
+    cursor: move;
+    transition: all var(--transition-fast);
+    margin-bottom: var(--spacing-sm);
+    position: relative;
+}
+
+.day-subject:hover {
+    background: var(--primary-dark);
+}
+
+.remove-subject {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--danger);
+    color: white;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.day-subject:hover .remove-subject {
+    opacity: 1;
+}
+
+/* Subject drag item improvements */
+.subject-drag-item {
+    cursor: grab;
+    user-select: none;
+    padding: var(--spacing-md);
+    background: white;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--gray-200);
+    margin-bottom: var(--spacing-sm);
+    transition: all var(--transition-fast);
+}
+
+.subject-drag-item:hover {
+    border-color: var(--primary);
+    background: var(--gray-50);
+    transform: translateY(-2px);
+}
+
+.subject-drag-item.dragging {
+    opacity: 0.5;
+    border-style: dashed;
+}
+
+.drag-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.drag-content i {
+    color: var(--gray-400);
+}
+
+/* Empty day state */
+.empty-day {
+    text-align: center;
+    color: var(--gray-400);
+    font-style: italic;
+    padding: var(--spacing-md) 0;
+    font-size: 0.875rem;
+}

@@ -1,4 +1,4 @@
-// Setup Page Logic
+// Setup Page Logic - FIXED VERSION
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const step1 = document.getElementById('step1');
@@ -43,6 +43,14 @@ document.addEventListener('DOMContentLoaded', () => {
         Storage.saveSubjects(subjects);
         Storage.saveTimetable(timetable);
         Utils.showToast('Setup saved successfully!', 'success');
+        
+        // Update subjects with IDs if they don't have them
+        subjects.forEach((subject, index) => {
+            if (!subject.id) {
+                subject.id = Utils.generateId();
+            }
+        });
+        Storage.saveSubjects(subjects);
     }
 
     // Step Navigation
@@ -82,13 +90,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Subject item for list
             const subjectItem = document.createElement('div');
             subjectItem.className = 'subject-item';
-            subjectItem.dataset.id = subject.id;
+            subjectItem.dataset.id = subject.id || Utils.generateId();
+            
+            // Ensure subject has an ID
+            if (!subject.id) {
+                subject.id = subjectItem.dataset.id;
+            }
+            
             subjectItem.innerHTML = `
                 <div class="subject-info">
                     <h4>${subject.name}</h4>
                     <div class="subject-meta">
-                        <span class="badge" style="background: ${subject.color}">
-                            Target: ${subject.target}%
+                        <span class="badge" style="background: ${subject.color || '#6366f1'}">
+                            Target: ${subject.target || 75}%
                         </span>
                     </div>
                 </div>
@@ -153,15 +167,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const newSubject = {
+            id: Utils.generateId(),
             name,
+            attended: 0,
+            total: 0,
             target: 75,
-            color: getRandomColor()
+            color: getRandomColor(),
+            createdAt: new Date().toISOString()
         };
 
         subjects.push(newSubject);
         subjectNameInput.value = '';
         renderSubjects();
         renderTargets();
+        renderTimetableGrid();
         Utils.showToast('Subject added successfully!', 'success');
     }
 
@@ -178,8 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             subject.name = newName.trim();
+            saveData();
             renderSubjects();
             renderTargets();
+            renderTimetableGrid();
             Utils.showToast('Subject updated!', 'success');
         }
     }
@@ -194,17 +215,22 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Remove from timetable
         Object.keys(timetable).forEach(day => {
-            timetable[day] = timetable[day].filter(id => id !== subjectId);
+            if (Array.isArray(timetable[day])) {
+                timetable[day] = timetable[day].filter(id => id !== subjectId);
+            }
         });
 
+        saveData();
         renderSubjects();
         renderTimetableGrid();
         renderTargets();
         Utils.showToast('Subject deleted!', 'success');
     }
 
-    // Timetable Management
+    // Timetable Management - FIXED VERSION
     function renderTimetableGrid() {
+        if (!timetableGrid) return;
+        
         timetableGrid.innerHTML = '';
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const today = new Date().getDay();
@@ -217,8 +243,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const isToday = index === today;
             const dayName = day.charAt(0).toUpperCase() + day.slice(1);
             
-            let subjectsInDay = timetable[day] || [];
-            subjectsInDay = subjectsInDay.map(id => subjects.find(s => s.id === id)).filter(Boolean);
+            // Ensure timetable[day] exists and is an array
+            if (!timetable[day] || !Array.isArray(timetable[day])) {
+                timetable[day] = [];
+            }
+            
+            let subjectsInDay = timetable[day]
+                .map(id => subjects.find(s => s.id === id))
+                .filter(Boolean);
 
             dayColumn.innerHTML = `
                 <div class="day-header ${isToday ? 'today' : ''}">${dayName}</div>
@@ -275,7 +307,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             zone.addEventListener('dragleave', (e) => {
-                zone.classList.remove('drag-over');
+                // Only remove if not dragging over child elements
+                if (!zone.contains(e.relatedTarget)) {
+                    zone.classList.remove('drag-over');
+                }
             });
 
             zone.addEventListener('drop', (e) => {
@@ -285,29 +320,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 const subjectId = e.dataTransfer.getData('text/plain');
                 const day = zone.dataset.day;
                 
-                addSubjectToDay(day, subjectId);
+                if (subjectId) {
+                    addSubjectToDay(day, subjectId);
+                }
             });
         });
     }
 
     function addSubjectToDay(day, subjectId) {
+        // Ensure timetable[day] exists
         if (!timetable[day]) {
             timetable[day] = [];
+        }
+        
+        // Check if subject exists
+        const subject = subjects.find(s => s.id === subjectId);
+        if (!subject) {
+            Utils.showToast('Subject not found!', 'error');
+            return;
         }
         
         // Check if subject already in this day
         if (!timetable[day].includes(subjectId)) {
             timetable[day].push(subjectId);
+            saveData();
             renderTimetableGrid();
-            Utils.showToast('Subject added to timetable!', 'success');
+            Utils.showToast(`Added ${subject.name} to ${day}`, 'success');
+        } else {
+            Utils.showToast('Subject already in this day!', 'warning');
         }
     }
 
     function removeSubjectFromDay(day, subjectId) {
         if (timetable[day]) {
             timetable[day] = timetable[day].filter(id => id !== subjectId);
+            saveData();
             renderTimetableGrid();
-            Utils.showToast('Subject removed from timetable!', 'success');
+            
+            const subject = subjects.find(s => s.id === subjectId);
+            if (subject) {
+                Utils.showToast(`Removed ${subject.name} from ${day}`, 'success');
+            }
         }
     }
 
@@ -335,8 +388,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="subject-info">
                     <h4>${subject.name}</h4>
                     <div class="subject-meta">
-                        <span class="badge" style="background: ${subject.color}">
-                            Current: ${subject.target}%
+                        <span class="badge" style="background: ${subject.color || '#6366f1'}">
+                            Current: ${subject.target || 75}%
                         </span>
                     </div>
                 </div>
@@ -346,9 +399,9 @@ document.addEventListener('DOMContentLoaded', () => {
                            data-id="${subject.id}"
                            min="0" 
                            max="100" 
-                           value="${subject.target}"
+                           value="${subject.target || 75}"
                            step="5">
-                    <span class="target-value">${subject.target}%</span>
+                    <span class="target-value">${subject.target || 75}%</span>
                 </div>
             `;
             targetsList.appendChild(targetItem);
@@ -370,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const subject = subjects.find(s => s.id === subjectId);
                 if (subject) {
                     subject.target = value;
+                    saveData();
                     renderSubjects(); // Update badge in subjects list
                     Utils.showToast('Target updated!', 'success');
                 }
@@ -389,10 +443,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Listeners
     function setupEventListeners() {
         // Add subject
-        addSubjectBtn.addEventListener('click', addSubject);
-        subjectNameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addSubject();
-        });
+        if (addSubjectBtn) {
+            addSubjectBtn.addEventListener('click', addSubject);
+        }
+        
+        if (subjectNameInput) {
+            subjectNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addSubject();
+            });
+        }
 
         // Step navigation
         document.querySelectorAll('.btn-next').forEach(btn => {
@@ -412,22 +471,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Save button
-        saveBtn.addEventListener('click', () => {
-            saveData();
-        });
-
-        // Step validation on save
-        saveBtn.addEventListener('click', () => {
-            if (validateStep(currentStep)) {
-                saveData();
-                // If on step 3, redirect to dashboard
-                if (currentStep === 3) {
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1500);
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                if (validateStep(currentStep)) {
+                    saveData();
+                    // If on step 3, redirect to dashboard
+                    if (currentStep === 3) {
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1500);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     function validateStep(step) {
@@ -441,7 +497,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 
             case 2:
                 // Check if timetable has at least one class
-                const hasClasses = Object.values(timetable).some(day => day.length > 0);
+                let hasClasses = false;
+                Object.keys(timetable).forEach(day => {
+                    if (Array.isArray(timetable[day]) && timetable[day].length > 0) {
+                        hasClasses = true;
+                    }
+                });
+                
                 if (!hasClasses) {
                     Utils.showToast('Please add at least one class to your timetable', 'error');
                     return false;

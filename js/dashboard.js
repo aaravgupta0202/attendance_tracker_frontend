@@ -61,10 +61,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const subjects = Storage.getSubjects();
         const todayHistory = Storage.getHistoryForDate(Utils.formatDate(today));
         
+        console.log('Today:', dayName);
+        console.log('Subject IDs:', subjectIds);
+        console.log('All subjects:', subjects);
+        
         // Filter subjects for today
         const todaySubjects = subjects.filter(subject => 
             subjectIds.includes(subject.id)
         );
+        
+        console.log('Today subjects:', todaySubjects);
 
         // Update count
         classCount.textContent = todaySubjects.length;
@@ -73,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (todaySubjects.length === 0) {
             classesContainer.style.display = 'none';
             emptyState.style.display = 'block';
+            console.log('No classes today');
             return;
         } else {
             classesContainer.style.display = 'block';

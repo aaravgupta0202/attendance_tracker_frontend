@@ -73,50 +73,17 @@
     padding-bottom: calc(var(--spacing-xl) + 60px); /* Account for bottom nav */
 }
 
-/* Bottom Navigation */
-.bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: white;
-    display: flex;
-    justify-content: space-around;
-    padding: var(--spacing-sm) 0;
-    border-top: 1px solid var(--gray-200);
-    z-index: 100;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: var(--spacing-sm);
-    color: var(--gray-500);
-    transition: all var(--transition-fast);
-    text-decoration: none;
+.main-content {
     flex: 1;
-    max-width: 100px;
+    padding: var(--spacing-lg);
+    max-width: 768px;
+    margin: 0 auto;
+    width: 100%;
+    padding-bottom: max(env(safe-area-inset-bottom), var(--spacing-lg)); /* Safe area for mobile */
 }
 
-.nav-item i {
-    font-size: 1.25rem;
-    margin-bottom: 0.25rem;
-}
-
-.nav-item span {
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-.nav-item.active {
-    color: var(--primary);
-}
-
-.nav-item:hover:not(.active) {
-    color: var(--gray-700);
-    transform: translateY(-2px);
+.setup-content, .stats-content {
+    padding-bottom: max(env(safe-area-inset-bottom), var(--spacing-xl)); /* Account for safe area */
 }
 
 /* Side Menu */

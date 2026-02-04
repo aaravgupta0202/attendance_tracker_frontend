@@ -246,3 +246,102 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize responsive classes
     window.dispatchEvent(new Event('resize'));
 });
+
+// Add to app.js
+function setupNavigationMenu() {
+    // Create menu button if it doesn't exist
+    if (!document.getElementById('menuBtn')) {
+        const headerLeft = document.querySelector('.header-left');
+        if (headerLeft) {
+            const menuBtn = document.createElement('button');
+            menuBtn.className = 'icon-btn menu-btn';
+            menuBtn.id = 'menuBtn';
+            menuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+            headerLeft.prepend(menuBtn);
+        }
+    }
+    
+    // Create side menu if it doesn't exist
+    if (!document.getElementById('sideMenu')) {
+        const sideMenu = document.createElement('div');
+        sideMenu.className = 'side-menu';
+        sideMenu.id = 'sideMenu';
+        sideMenu.innerHTML = `
+            <div class="menu-header">
+                <h3>Menu</h3>
+                <button class="icon-btn close-menu" id="closeMenu">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="menu-items">
+                <a href="index.html" class="menu-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="stats.html" class="menu-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Statistics</span>
+                </a>
+                <a href="setup.html" class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Setup</span>
+                </a>
+                <div class="menu-divider"></div>
+                <button class="menu-item" id="exportData">
+                    <i class="fas fa-download"></i>
+                    <span>Export Data</span>
+                </button>
+                <button class="menu-item" id="importData">
+                    <i class="fas fa-upload"></i>
+                    <span>Import Data</span>
+                </button>
+                <button class="menu-item" id="resetData">
+                    <i class="fas fa-trash"></i>
+                    <span>Reset Data</span>
+                </button>
+            </div>
+            <div class="menu-footer">
+                <div class="app-version">AttendSwipe v1.0</div>
+                <div class="storage-info">
+                    <i class="fas fa-database"></i>
+                    <span id="storageUsage">0% used</span>
+                </div>
+            </div>
+        `;
+        
+        const menuOverlay = document.createElement('div');
+        menuOverlay.className = 'menu-overlay';
+        menuOverlay.id = 'menuOverlay';
+        
+        document.body.appendChild(sideMenu);
+        document.body.appendChild(menuOverlay);
+    }
+    
+    // Setup menu toggle
+    const menuBtn = document.getElementById('menuBtn');
+    const closeMenu = document.getElementById('closeMenu');
+    const sideMenu = document.getElementById('sideMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+    
+    if (menuBtn && sideMenu && menuOverlay) {
+        menuBtn.addEventListener('click', () => {
+            sideMenu.classList.add('active');
+            menuOverlay.classList.add('active');
+        });
+        
+        if (closeMenu) {
+            closeMenu.addEventListener('click', () => {
+                sideMenu.classList.remove('active');
+                menuOverlay.classList.remove('active');
+            });
+        }
+        
+        menuOverlay.addEventListener('click', () => {
+            sideMenu.classList.remove('active');
+            menuOverlay.classList.remove('active');
+        });
+    }
+}
+
+// Call this in init
+setupNavigationMenu();
