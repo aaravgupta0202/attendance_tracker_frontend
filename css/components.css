@@ -384,27 +384,40 @@
     box-shadow: var(--shadow);
 }
 
+/* DRAG AND DROP FIXES */
 .subject-drag-item {
-    cursor: move;
+    cursor: grab !important;
     user-select: none;
     padding: var(--spacing-md);
     background: white;
     border-radius: var(--radius-md);
-    border: 2px dashed var(--gray-300);
+    border: 2px solid var(--gray-200);
     margin-bottom: var(--spacing-sm);
     transition: all var(--transition-fast);
 }
 
 .subject-drag-item:hover {
-    border-color: var(--primary);
+    border-color: var(--primary) !important;
     background: var(--gray-50);
+    transform: translateY(-2px);
 }
 
 .subject-drag-item.dragging {
     opacity: 0.5;
+    border-style: dashed !important;
 }
 
-/* Timetable */
+.drag-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.drag-content i {
+    color: var(--gray-400);
+}
+
+/* Timetable - FIXED VERSION */
 .timetable-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -416,8 +429,16 @@
     background: white;
     border-radius: var(--radius-md);
     padding: var(--spacing-md);
-    border: 2px solid var(--gray-200);
+    border: 2px dashed var(--gray-300) !important;
     min-height: 150px;
+    transition: all var(--transition-fast);
+}
+
+.day-column.drag-over {
+    background: var(--primary-light) !important;
+    border-color: var(--primary) !important;
+    border-style: solid !important;
+    transform: scale(1.02);
 }
 
 .day-header {
@@ -438,21 +459,55 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
+    min-height: 100px;
 }
 
 .day-subject {
-    background: var(--gray-100);
+    background: var(--primary) !important;
+    color: white !important;
     padding: 0.5rem;
     border-radius: var(--radius-sm);
     font-size: 0.875rem;
     text-align: center;
     cursor: move;
     transition: all var(--transition-fast);
+    margin-bottom: var(--spacing-sm);
+    position: relative;
 }
 
 .day-subject:hover {
-    background: var(--primary-light);
+    background: var(--primary-dark) !important;
+}
+
+.remove-subject {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--danger);
     color: white;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.day-subject:hover .remove-subject {
+    opacity: 1;
+}
+
+.empty-day {
+    text-align: center;
+    color: var(--gray-400);
+    font-style: italic;
+    padding: var(--spacing-md) 0;
+    font-size: 0.875rem;
 }
 
 /* Statistics Cards */
@@ -591,7 +646,7 @@
 /* Toast */
 .toast {
     position: fixed;
-    bottom: 80px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%) translateY(100px);
     background: var(--gray-800);
@@ -698,7 +753,7 @@
     box-shadow: var(--shadow);
 }
 
-/* Drag and Drop */
+/* Drag and Drop States */
 .drag-over {
     background: var(--primary-light) !important;
     border-color: var(--primary) !important;
@@ -797,103 +852,13 @@
     color: white;
 }
 
-/* Add these styles to fix drag and drop */
-
-/* Day column drop zone improvements */
-.day-column {
-    background: white;
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    border: 2px dashed var(--gray-300);
-    min-height: 150px;
-    transition: all var(--transition-fast);
-}
-
-.day-column.drag-over {
-    background: var(--primary-light);
-    border-color: var(--primary);
-    border-style: solid;
-    transform: scale(1.02);
-}
-
-.day-subject {
-    background: var(--primary);
-    color: white;
-    padding: 0.5rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.875rem;
-    text-align: center;
-    cursor: move;
-    transition: all var(--transition-fast);
-    margin-bottom: var(--spacing-sm);
-    position: relative;
-}
-
-.day-subject:hover {
-    background: var(--primary-dark);
-}
-
-.remove-subject {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--danger);
-    color: white;
-    border: none;
-    font-size: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity var(--transition-fast);
-}
-
-.day-subject:hover .remove-subject {
-    opacity: 1;
-}
-
-/* Subject drag item improvements */
-.subject-drag-item {
-    cursor: grab;
-    user-select: none;
-    padding: var(--spacing-md);
-    background: white;
-    border-radius: var(--radius-md);
-    border: 2px solid var(--gray-200);
-    margin-bottom: var(--spacing-sm);
-    transition: all var(--transition-fast);
-}
-
-.subject-drag-item:hover {
-    border-color: var(--primary);
-    background: var(--gray-50);
-    transform: translateY(-2px);
-}
-
-.subject-drag-item.dragging {
-    opacity: 0.5;
-    border-style: dashed;
-}
-
-.drag-content {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-}
-
-.drag-content i {
-    color: var(--gray-400);
-}
-
-/* Empty day state */
-.empty-day {
-    text-align: center;
-    color: var(--gray-400);
-    font-style: italic;
-    padding: var(--spacing-md) 0;
-    font-size: 0.875rem;
+/* Mobile Safe Area */
+@media (max-width: 640px) {
+    .toast {
+        bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
 }

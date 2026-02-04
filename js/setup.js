@@ -1,521 +1,541 @@
-// Setup Page Logic - FIXED VERSION
+// Dashboard Logic
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
-    const step1 = document.getElementById('step1');
-    const step2 = document.getElementById('step2');
-    const step3 = document.getElementById('step3');
-    const subjectsList = document.getElementById('subjectsList');
-    const subjectsDragList = document.getElementById('subjectsDragList');
-    const timetableGrid = document.querySelector('.timetable-grid');
-    const targetsList = document.getElementById('targetsList');
-    const addSubjectBtn = document.getElementById('addSubjectBtn');
-    const subjectNameInput = document.getElementById('subjectName');
-    const saveBtn = document.getElementById('saveBtn');
+    const classesContainer = document.getElementById('classesContainer');
+    const classesList = document.getElementById('classesList');
+    const emptyState = document.getElementById('emptyState');
+    const setupPrompt = document.getElementById('setupPrompt');
+    const classCount = document.getElementById('classCount');
+    const currentDate = document.getElementById('currentDate');
+    const dayBadge = document.getElementById('dayBadge');
+    const undoBtn = document.getElementById('undoBtn');
+    const markAllBtn = document.getElementById('markAllBtn');
+    const todayBtn = document.getElementById('todayBtn');
     
-    // State
-    let subjects = [];
-    let timetable = {};
-    let currentStep = 1;
+    // Swipe tracking
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    let isSwiping = false;
+    let currentCard = null;
+    let undoStack = [];
 
     // Initialize
     init();
 
     function init() {
-        loadData();
-        renderSubjects();
-        renderTimetableGrid();
-        renderTargets();
+        updateDateDisplay();
+        checkSetupStatus();
+        loadTodayClasses();
         setupEventListeners();
-        updateStep(currentStep);
+        setupMenu();
     }
 
-    function loadData() {
-        subjects = Storage.getSubjects();
-        timetable = Storage.getTimetable();
+    function updateDateDisplay() {
+        const today = new Date();
+        currentDate.textContent = Utils.formatDisplayDate(today);
+        dayBadge.textContent = Utils.getDayName(today);
+    }
+
+    function checkSetupStatus() {
+        const subjects = Storage.getSubjects();
+        const timetable = Storage.getTimetable();
         
-        // If no subjects, show step 1
-        if (subjects.length === 0) {
-            currentStep = 1;
-        }
-    }
-
-    function saveData() {
-        Storage.saveSubjects(subjects);
-        Storage.saveTimetable(timetable);
-        Utils.showToast('Setup saved successfully!', 'success');
+        const hasSubjects = subjects.length > 0;
+        const hasTimetable = Object.values(timetable).some(day => day.length > 0);
         
-        // Update subjects with IDs if they don't have them
-        subjects.forEach((subject, index) => {
-            if (!subject.id) {
-                subject.id = Utils.generateId();
-            }
-        });
-        Storage.saveSubjects(subjects);
-    }
-
-    // Step Navigation
-    function updateStep(step) {
-        // Update step indicators
-        document.querySelectorAll('.step').forEach(s => {
-            s.classList.toggle('active', parseInt(s.dataset.step) === step);
-        });
-
-        // Show/hide steps
-        [step1, step2, step3].forEach((s, index) => {
-            s.classList.toggle('active', index + 1 === step);
-        });
-
-        currentStep = step;
-    }
-
-    // Subject Management
-    function renderSubjects() {
-        subjectsList.innerHTML = '';
-        subjectsDragList.innerHTML = '';
-
-        if (subjects.length === 0) {
-            subjectsList.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-book"></i>
-                    </div>
-                    <h3>No subjects added</h3>
-                    <p>Add your first subject using the form above</p>
-                </div>
-            `;
-            return;
-        }
-
-        subjects.forEach(subject => {
-            // Subject item for list
-            const subjectItem = document.createElement('div');
-            subjectItem.className = 'subject-item';
-            subjectItem.dataset.id = subject.id || Utils.generateId();
-            
-            // Ensure subject has an ID
-            if (!subject.id) {
-                subject.id = subjectItem.dataset.id;
-            }
-            
-            subjectItem.innerHTML = `
-                <div class="subject-info">
-                    <h4>${subject.name}</h4>
-                    <div class="subject-meta">
-                        <span class="badge" style="background: ${subject.color || '#6366f1'}">
-                            Target: ${subject.target || 75}%
-                        </span>
-                    </div>
-                </div>
-                <div class="subject-actions">
-                    <button class="icon-btn edit-subject" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="icon-btn delete-subject" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
-            subjectsList.appendChild(subjectItem);
-
-            // Draggable subject for timetable
-            const dragItem = document.createElement('div');
-            dragItem.className = 'subject-drag-item';
-            dragItem.draggable = true;
-            dragItem.dataset.id = subject.id;
-            dragItem.innerHTML = `
-                <div class="drag-content">
-                    <i class="fas fa-grip-vertical"></i>
-                    <span>${subject.name}</span>
-                </div>
-            `;
-            subjectsDragList.appendChild(dragItem);
-        });
-
-        // Add event listeners for edit/delete
-        document.querySelectorAll('.edit-subject').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const subjectId = e.target.closest('.subject-item').dataset.id;
-                editSubject(subjectId);
-            });
-        });
-
-        document.querySelectorAll('.delete-subject').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const subjectId = e.target.closest('.subject-item').dataset.id;
-                deleteSubject(subjectId);
-            });
-        });
-
-        // Add drag events
-        setupDragAndDrop();
-    }
-
-    function addSubject() {
-        const name = subjectNameInput.value.trim();
-        const error = Utils.validateSubjectName(name);
-        
-        if (error) {
-            Utils.showToast(error, 'error');
-            subjectNameInput.focus();
-            return;
-        }
-
-        // Check if subject already exists
-        if (subjects.some(s => s.name.toLowerCase() === name.toLowerCase())) {
-            Utils.showToast('Subject already exists!', 'error');
-            return;
-        }
-
-        const newSubject = {
-            id: Utils.generateId(),
-            name,
-            attended: 0,
-            total: 0,
-            target: 75,
-            color: getRandomColor(),
-            createdAt: new Date().toISOString()
-        };
-
-        subjects.push(newSubject);
-        subjectNameInput.value = '';
-        renderSubjects();
-        renderTargets();
-        renderTimetableGrid();
-        Utils.showToast('Subject added successfully!', 'success');
-    }
-
-    function editSubject(subjectId) {
-        const subject = subjects.find(s => s.id === subjectId);
-        if (!subject) return;
-
-        const newName = prompt('Edit subject name:', subject.name);
-        if (newName && newName.trim() !== '' && newName !== subject.name) {
-            const error = Utils.validateSubjectName(newName);
-            if (error) {
-                Utils.showToast(error, 'error');
-                return;
-            }
-
-            subject.name = newName.trim();
-            saveData();
-            renderSubjects();
-            renderTargets();
-            renderTimetableGrid();
-            Utils.showToast('Subject updated!', 'success');
-        }
-    }
-
-    function deleteSubject(subjectId) {
-        if (!confirm('Are you sure you want to delete this subject? This will also remove it from your timetable.')) {
-            return;
-        }
-
-        // Remove from subjects
-        subjects = subjects.filter(s => s.id !== subjectId);
-        
-        // Remove from timetable
-        Object.keys(timetable).forEach(day => {
-            if (Array.isArray(timetable[day])) {
-                timetable[day] = timetable[day].filter(id => id !== subjectId);
-            }
-        });
-
-        saveData();
-        renderSubjects();
-        renderTimetableGrid();
-        renderTargets();
-        Utils.showToast('Subject deleted!', 'success');
-    }
-
-    // Timetable Management - FIXED VERSION
-    function renderTimetableGrid() {
-        if (!timetableGrid) return;
-        
-        timetableGrid.innerHTML = '';
-        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const today = new Date().getDay();
-
-        days.forEach((day, index) => {
-            const dayColumn = document.createElement('div');
-            dayColumn.className = 'day-column';
-            dayColumn.dataset.day = day;
-            
-            const isToday = index === today;
-            const dayName = day.charAt(0).toUpperCase() + day.slice(1);
-            
-            // Ensure timetable[day] exists and is an array
-            if (!timetable[day] || !Array.isArray(timetable[day])) {
-                timetable[day] = [];
-            }
-            
-            let subjectsInDay = timetable[day]
-                .map(id => subjects.find(s => s.id === id))
-                .filter(Boolean);
-
-            dayColumn.innerHTML = `
-                <div class="day-header ${isToday ? 'today' : ''}">${dayName}</div>
-                <div class="day-subjects">
-                    ${subjectsInDay.map(subject => `
-                        <div class="day-subject" data-id="${subject.id}" draggable="true">
-                            ${subject.name}
-                            <button class="remove-subject" data-id="${subject.id}">&times;</button>
-                        </div>
-                    `).join('')}
-                    ${subjectsInDay.length === 0 ? '<div class="empty-day">No classes</div>' : ''}
-                </div>
-            `;
-
-            timetableGrid.appendChild(dayColumn);
-        });
-
-        // Add drop events
-        setupDropZones();
-        
-        // Add remove subject events
-        document.querySelectorAll('.remove-subject').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const subjectId = e.target.dataset.id;
-                const day = e.target.closest('.day-column').dataset.day;
-                removeSubjectFromDay(day, subjectId);
-            });
-        });
-    }
-
-    function setupDragAndDrop() {
-        const dragItems = document.querySelectorAll('.subject-drag-item');
-        
-        dragItems.forEach(item => {
-            item.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', e.target.dataset.id);
-                e.target.classList.add('dragging');
-            });
-
-            item.addEventListener('dragend', (e) => {
-                e.target.classList.remove('dragging');
-            });
-        });
-    }
-
-    function setupDropZones() {
-        const dropZones = document.querySelectorAll('.day-column');
-        
-        dropZones.forEach(zone => {
-            zone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                zone.classList.add('drag-over');
-            });
-
-            zone.addEventListener('dragleave', (e) => {
-                // Only remove if not dragging over child elements
-                if (!zone.contains(e.relatedTarget)) {
-                    zone.classList.remove('drag-over');
-                }
-            });
-
-            zone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                zone.classList.remove('drag-over');
-                
-                const subjectId = e.dataTransfer.getData('text/plain');
-                const day = zone.dataset.day;
-                
-                if (subjectId) {
-                    addSubjectToDay(day, subjectId);
-                }
-            });
-        });
-    }
-
-    function addSubjectToDay(day, subjectId) {
-        // Ensure timetable[day] exists
-        if (!timetable[day]) {
-            timetable[day] = [];
-        }
-        
-        // Check if subject exists
-        const subject = subjects.find(s => s.id === subjectId);
-        if (!subject) {
-            Utils.showToast('Subject not found!', 'error');
-            return;
-        }
-        
-        // Check if subject already in this day
-        if (!timetable[day].includes(subjectId)) {
-            timetable[day].push(subjectId);
-            saveData();
-            renderTimetableGrid();
-            Utils.showToast(`Added ${subject.name} to ${day}`, 'success');
+        if (!hasSubjects || !hasTimetable) {
+            setupPrompt.style.display = 'block';
+            classesContainer.style.display = 'none';
+            emptyState.style.display = 'none';
         } else {
-            Utils.showToast('Subject already in this day!', 'warning');
+            setupPrompt.style.display = 'none';
         }
     }
 
-    function removeSubjectFromDay(day, subjectId) {
-        if (timetable[day]) {
-            timetable[day] = timetable[day].filter(id => id !== subjectId);
-            saveData();
-            renderTimetableGrid();
+    function loadTodayClasses() {
+        const today = new Date();
+        const dayName = Utils.getDayName(today).toLowerCase();
+        const subjectIds = Storage.getSubjectsForDay(dayName);
+        const subjects = Storage.getSubjects();
+        const todayHistory = Storage.getHistoryForDate(Utils.formatDate(today));
+        
+        // Debug logging
+        console.log('Today:', dayName);
+        console.log('Subject IDs for today:', subjectIds);
+        console.log('All subjects:', subjects);
+        
+        // Filter subjects for today
+        const todaySubjects = subjects.filter(subject => 
+            subjectIds.includes(subject.id)
+        );
+        
+        console.log('Today subjects found:', todaySubjects);
+
+        // Update count
+        classCount.textContent = todaySubjects.length;
+        
+        // Show/hide containers
+        if (todaySubjects.length === 0) {
+            classesContainer.style.display = 'none';
+            emptyState.style.display = 'block';
+            console.log('No classes today');
+            return;
+        } else {
+            classesContainer.style.display = 'block';
+            emptyState.style.display = 'none';
+        }
+
+        // Clear current list
+        classesList.innerHTML = '';
+
+        // Create cards for each subject
+        todaySubjects.forEach((subject, index) => {
+            const card = createClassCard(subject, todayHistory);
+            classesList.appendChild(card);
             
-            const subject = subjects.find(s => s.id === subjectId);
-            if (subject) {
-                Utils.showToast(`Removed ${subject.name} from ${day}`, 'success');
+            // Add swipe listeners
+            addSwipeListeners(card, subject.id);
+            
+            // Animate card appearance
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+
+        // Update undo button state
+        updateUndoButton();
+    }
+
+    function createClassCard(subject, todayHistory) {
+        const percentage = Utils.calculatePercentage(subject.attended || 0, subject.total || 0);
+        const riskLevel = Utils.getRiskLevel(percentage, subject.target || 75);
+        const status = todayHistory.entries.find(entry => entry.subjectId === subject.id)?.status || 'pending';
+        
+        const card = document.createElement('div');
+        card.className = `class-card ${riskLevel}-risk`;
+        card.dataset.subjectId = subject.id;
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.3s, transform 0.3s';
+        
+        card.innerHTML = `
+            <div class="card-header">
+                <h3 class="subject-name">${subject.name}</h3>
+                <span class="subject-time">${getRandomTime()}</span>
+            </div>
+            
+            <div class="card-body">
+                <div class="attendance-info">
+                    <div class="attendance-percentage">${percentage}%</div>
+                    <div class="target-info">
+                        <div class="target-percentage">Target: ${subject.target || 75}%</div>
+                        <div class="classes-count">
+                            <span>${subject.attended || 0}/${subject.total || 0} classes</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill ${Utils.getPercentageColor(percentage, subject.target || 75)}" 
+                         style="width: ${percentage}%"></div>
+                </div>
+            </div>
+            
+            <div class="card-footer">
+                <div class="status-badge status-${status}">
+                    ${getStatusText(status)}
+                </div>
+                <div class="swipe-hint">
+                    <i class="fas fa-arrow-right"></i>
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+            </div>
+        `;
+        
+        return card;
+    }
+
+    function addSwipeListeners(card, subjectId) {
+        let isDragging = false;
+        let startX = 0;
+        let currentX = 0;
+        let transform = 0;
+        
+        card.addEventListener('touchstart', handleTouchStart, { passive: true });
+        card.addEventListener('touchmove', handleTouchMove, { passive: false });
+        card.addEventListener('touchend', handleTouchEnd);
+        
+        card.addEventListener('mousedown', handleMouseDown);
+        
+        // Prevent text selection while dragging
+        card.addEventListener('selectstart', (e) => {
+            if (isDragging) e.preventDefault();
+        });
+
+        function handleTouchStart(e) {
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            currentX = startX;
+            isDragging = true;
+            card.style.transition = 'none';
+            e.preventDefault();
+        }
+
+        function handleTouchMove(e) {
+            if (!isDragging) return;
+            
+            const touch = e.touches[0];
+            currentX = touch.clientX;
+            transform = currentX - startX;
+            
+            // Apply transform with resistance
+            const resistance = 0.5;
+            const limitedTransform = transform * resistance;
+            
+            card.style.transform = `translateX(${limitedTransform}px) rotate(${limitedTransform * 0.1}deg)`;
+            
+            // Change color based on direction
+            if (transform > 50) {
+                card.style.backgroundColor = '#d1fae5'; // Green for right
+            } else if (transform < -50) {
+                card.style.backgroundColor = '#fee2e2'; // Red for left
+            } else {
+                card.style.backgroundColor = '';
+            }
+            
+            e.preventDefault();
+        }
+
+        function handleTouchEnd() {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            card.style.transition = 'transform 0.3s, opacity 0.3s';
+            
+            const threshold = 100;
+            const velocity = Math.abs(transform);
+            
+            if (velocity > threshold) {
+                // Swipe was intentional
+                if (transform > 0) {
+                    // Swipe right - attended
+                    markAttendance(subjectId, 'attended');
+                    card.classList.add('swipe-right');
+                } else {
+                    // Swipe left - missed
+                    markAttendance(subjectId, 'missed');
+                    card.classList.add('swipe-left');
+                }
+                
+                // Remove card after animation
+                setTimeout(() => {
+                    card.remove();
+                    loadTodayClasses(); // Reload to update counts
+                }, 300);
+            } else {
+                // Return to original position
+                card.style.transform = '';
+                card.style.backgroundColor = '';
             }
         }
-    }
 
-    // Targets Management
-    function renderTargets() {
-        targetsList.innerHTML = '';
-
-        if (subjects.length === 0) {
-            targetsList.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-bullseye"></i>
-                    </div>
-                    <h3>No subjects to configure</h3>
-                    <p>Add subjects in step 1 to set targets</p>
-                </div>
-            `;
-            return;
+        function handleMouseDown(e) {
+            if (e.button !== 0) return; // Only left click
+            
+            startX = e.clientX;
+            currentX = startX;
+            isDragging = true;
+            card.style.transition = 'none';
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
         }
 
-        subjects.forEach(subject => {
-            const targetItem = document.createElement('div');
-            targetItem.className = 'subject-item';
-            targetItem.innerHTML = `
-                <div class="subject-info">
-                    <h4>${subject.name}</h4>
-                    <div class="subject-meta">
-                        <span class="badge" style="background: ${subject.color || '#6366f1'}">
-                            Current: ${subject.target || 75}%
-                        </span>
-                    </div>
-                </div>
-                <div class="subject-actions">
-                    <input type="range" 
-                           class="target-slider" 
-                           data-id="${subject.id}"
-                           min="0" 
-                           max="100" 
-                           value="${subject.target || 75}"
-                           step="5">
-                    <span class="target-value">${subject.target || 75}%</span>
-                </div>
-            `;
-            targetsList.appendChild(targetItem);
-        });
-
-        // Add slider events
-        document.querySelectorAll('.target-slider').forEach(slider => {
-            const valueSpan = slider.nextElementSibling;
+        function handleMouseMove(e) {
+            if (!isDragging) return;
             
-            slider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                valueSpan.textContent = `${value}%`;
-            });
+            currentX = e.clientX;
+            transform = currentX - startX;
+            
+            const resistance = 0.5;
+            const limitedTransform = transform * resistance;
+            
+            card.style.transform = `translateX(${limitedTransform}px) rotate(${limitedTransform * 0.1}deg)`;
+            
+            if (transform > 50) {
+                card.style.backgroundColor = '#d1fae5';
+            } else if (transform < -50) {
+                card.style.backgroundColor = '#fee2e2';
+            } else {
+                card.style.backgroundColor = '';
+            }
+        }
 
-            slider.addEventListener('change', (e) => {
-                const subjectId = e.target.dataset.id;
-                const value = parseInt(e.target.value);
-                
-                const subject = subjects.find(s => s.id === subjectId);
-                if (subject) {
-                    subject.target = value;
-                    saveData();
-                    renderSubjects(); // Update badge in subjects list
-                    Utils.showToast('Target updated!', 'success');
+        function handleMouseUp() {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            card.style.transition = 'transform 0.3s, opacity 0.3s';
+            
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            
+            const threshold = 100;
+            const velocity = Math.abs(transform);
+            
+            if (velocity > threshold) {
+                if (transform > 0) {
+                    markAttendance(subjectId, 'attended');
+                    card.classList.add('swipe-right');
+                } else {
+                    markAttendance(subjectId, 'missed');
+                    card.classList.add('swipe-left');
                 }
-            });
+                
+                setTimeout(() => {
+                    card.remove();
+                    loadTodayClasses();
+                }, 300);
+            } else {
+                card.style.transform = '';
+                card.style.backgroundColor = '';
+            }
+        }
+
+        // Tap for cancelled
+        let tapTimer;
+        card.addEventListener('click', (e) => {
+            if (isDragging) return;
+            
+            clearTimeout(tapTimer);
+            tapTimer = setTimeout(() => {
+                // Check if this was a tap (not part of a swipe)
+                if (!isDragging && Math.abs(transform) < 10) {
+                    markAttendance(subjectId, 'cancelled');
+                    card.classList.add('swipe-tap');
+                    
+                    setTimeout(() => {
+                        card.classList.remove('swipe-tap');
+                        updateCardStatus(card, 'cancelled');
+                    }, 300);
+                }
+            }, 200);
         });
     }
 
-    // Utility Functions
-    function getRandomColor() {
-        const colors = [
-            '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
-            '#10b981', '#3b82f6', '#f59e0b', '#84cc16'
-        ];
-        return colors[Math.floor(Math.random() * colors.length)];
+    function markAttendance(subjectId, status) {
+        const today = Utils.formatDate();
+        const success = Storage.markAttendance(today, subjectId, status);
+        
+        if (success) {
+            // Add to undo stack
+            undoStack.push({
+                subjectId,
+                status,
+                timestamp: new Date().toISOString()
+            });
+            
+            updateUndoButton();
+            
+            // Show feedback
+            const messages = {
+                attended: 'Marked as attended ✓',
+                missed: 'Marked as missed ✗',
+                cancelled: 'Marked as cancelled ∅'
+            };
+            
+            Utils.showToast(messages[status], 'success');
+        }
     }
 
-    // Event Listeners
+    function undoLastAction() {
+        if (undoStack.length === 0) return;
+        
+        const lastAction = Storage.undoLastAction();
+        if (lastAction) {
+            undoStack.pop();
+            updateUndoButton();
+            loadTodayClasses();
+            
+            Utils.showToast('Undo successful!', 'success');
+        }
+    }
+
+    function markAllPresent() {
+        const today = new Date();
+        const dayName = Utils.getDayName(today).toLowerCase();
+        const subjectIds = Storage.getSubjectsForDay(dayName);
+        
+        subjectIds.forEach(subjectId => {
+            markAttendance(subjectId, 'attended');
+        });
+        
+        Utils.showToast('All classes marked as attended!', 'success');
+    }
+
+    function updateCardStatus(card, status) {
+        const badge = card.querySelector('.status-badge');
+        badge.className = `status-badge status-${status}`;
+        badge.textContent = getStatusText(status);
+    }
+
+    function updateUndoButton() {
+        undoBtn.disabled = undoStack.length === 0;
+    }
+
+    function getStatusText(status) {
+        const texts = {
+            attended: 'Attended ✓',
+            missed: 'Missed ✗',
+            cancelled: 'Cancelled ∅',
+            pending: 'Pending...'
+        };
+        return texts[status] || status;
+    }
+
+    function getRandomTime() {
+        const hours = Math.floor(Math.random() * 5) + 8; // 8 AM to 1 PM
+        const minutes = Math.random() > 0.5 ? '00' : '30';
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const displayHour = hours > 12 ? hours - 12 : hours;
+        return `${displayHour}:${minutes} ${period}`;
+    }
+
     function setupEventListeners() {
-        // Add subject
-        if (addSubjectBtn) {
-            addSubjectBtn.addEventListener('click', addSubject);
+        // Undo button
+        undoBtn.addEventListener('click', undoLastAction);
+        
+        // Mark all button
+        markAllBtn.addEventListener('click', markAllPresent);
+        
+        // Today button
+        todayBtn.addEventListener('click', () => {
+            loadTodayClasses();
+            updateDateDisplay();
+            Utils.showToast('Refreshed!', 'success');
+        });
+        
+        // View week button
+        const viewWeekBtn = document.getElementById('viewWeekBtn');
+        if (viewWeekBtn) {
+            viewWeekBtn.addEventListener('click', () => {
+                window.location.href = 'stats.html';
+            });
+        }
+    }
+
+    function setupMenu() {
+        const menuBtn = document.getElementById('menuBtn');
+        const closeMenu = document.getElementById('closeMenu');
+        const sideMenu = document.getElementById('sideMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
+        
+        if (menuBtn) {
+            menuBtn.addEventListener('click', () => {
+                sideMenu.classList.add('active');
+                menuOverlay.classList.add('active');
+            });
         }
         
-        if (subjectNameInput) {
-            subjectNameInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') addSubject();
+        if (closeMenu) {
+            closeMenu.addEventListener('click', () => {
+                sideMenu.classList.remove('active');
+                menuOverlay.classList.remove('active');
             });
         }
-
-        // Step navigation
-        document.querySelectorAll('.btn-next').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const nextStep = parseInt(e.target.dataset.next);
-                if (validateStep(currentStep)) {
-                    updateStep(nextStep);
-                }
+        
+        if (menuOverlay) {
+            menuOverlay.addEventListener('click', () => {
+                sideMenu.classList.remove('active');
+                menuOverlay.classList.remove('active');
             });
-        });
+        }
+        
+        // Update storage usage
+        updateStorageUsage();
+        
+        // Setup menu actions
+        setupMenuActions();
+    }
 
-        document.querySelectorAll('.btn-prev').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const prevStep = parseInt(e.target.dataset.prev);
-                updateStep(prevStep);
-            });
-        });
-
-        // Save button
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                if (validateStep(currentStep)) {
-                    saveData();
-                    // If on step 3, redirect to dashboard
-                    if (currentStep === 3) {
-                        setTimeout(() => {
-                            window.location.href = 'index.html';
-                        }, 1500);
-                    }
-                }
-            });
+    function updateStorageUsage() {
+        const storageInfo = Utils.calculateStorageUsage();
+        const storageUsage = document.getElementById('storageUsage');
+        if (storageUsage) {
+            storageUsage.textContent = `${storageInfo.percentage}% used`;
         }
     }
 
-    function validateStep(step) {
-        switch(step) {
-            case 1:
-                if (subjects.length === 0) {
-                    Utils.showToast('Please add at least one subject', 'error');
-                    return false;
-                }
-                return true;
+    function setupMenuActions() {
+        // Export data
+        const exportData = document.getElementById('exportData');
+        if (exportData) {
+            exportData.addEventListener('click', () => {
+                const data = Storage.exportData();
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `attendance-backup-${Utils.formatDate()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
                 
-            case 2:
-                // Check if timetable has at least one class
-                let hasClasses = false;
-                Object.keys(timetable).forEach(day => {
-                    if (Array.isArray(timetable[day]) && timetable[day].length > 0) {
-                        hasClasses = true;
+                Utils.showToast('Data exported successfully!', 'success');
+            });
+        }
+        
+        // Import data
+        const importData = document.getElementById('importData');
+        if (importData) {
+            importData.addEventListener('click', () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const result = Storage.importData(event.target.result);
+                            if (result.success) {
+                                Utils.showToast('Data imported successfully!', 'success');
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                Utils.showToast('Import failed: ' + result.error, 'error');
+                            }
+                        } catch (error) {
+                            Utils.showToast('Invalid file format', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                input.click();
+            });
+        }
+        
+        // Reset data
+        const resetData = document.getElementById('resetData');
+        if (resetData) {
+            resetData.addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset all data? This cannot be undone!')) {
+                    const result = Storage.clearAllData();
+                    if (result.success) {
+                        Utils.showToast('All data has been reset', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'setup.html';
+                        }, 1000);
                     }
-                });
-                
-                if (!hasClasses) {
-                    Utils.showToast('Please add at least one class to your timetable', 'error');
-                    return false;
                 }
-                return true;
-                
-            case 3:
-                // All targets are valid by default (0-100)
-                return true;
-                
-            default:
-                return true;
+            });
         }
     }
 });

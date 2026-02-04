@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
         Utils.showToast('You are offline. Changes will sync when back online.', 'warning');
     });
 
+    // Setup navigation menu for all pages
+    setupNavigationMenu();
+
     // Initialize app based on current page
     const currentPage = window.location.pathname.split('/').pop();
     
@@ -247,9 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.dispatchEvent(new Event('resize'));
 });
 
-// Add to app.js
+// Navigation Menu Setup Function
 function setupNavigationMenu() {
-    // Create menu button if it doesn't exist
+    // Create menu button if it doesn't exist (for pages that don't have it)
     if (!document.getElementById('menuBtn')) {
         const headerLeft = document.querySelector('.header-left');
         if (headerLeft) {
@@ -341,7 +344,90 @@ function setupNavigationMenu() {
             menuOverlay.classList.remove('active');
         });
     }
+    
+    // Setup menu actions
+    setupMenuActions();
 }
 
-// Call this in init
-setupNavigationMenu();
+// Setup menu actions
+function setupMenuActions() {
+    // Export data
+    const exportData = document.getElementById('exportData');
+    if (exportData) {
+        exportData.addEventListener('click', () => {
+            const data = Storage.exportData();
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `attendance-backup-${Utils.formatDate()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            Utils.showToast('Data exported successfully!', 'success');
+        });
+    }
+    
+    // Import data
+    const importData = document.getElementById('importData');
+    if (importData) {
+        importData.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const result = Storage.importData(event.target.result);
+                        if (result.success) {
+                            Utils.showToast('Data imported successfully!', 'success');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            Utils.showToast('Import failed: ' + result.error, 'error');
+                        }
+                    } catch (error) {
+                        Utils.showToast('Invalid file format', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        });
+    }
+    
+    // Reset data
+    const resetData = document.getElementById('resetData');
+    if (resetData) {
+        resetData.addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset all data? This cannot be undone!')) {
+                const result = Storage.clearAllData();
+                if (result.success) {
+                    Utils.showToast('All data has been reset', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'setup.html';
+                    }, 1000);
+                }
+            }
+        });
+    }
+    
+    // Update storage usage
+    updateStorageUsage();
+}
+
+// Update storage usage display
+function updateStorageUsage() {
+    const storageInfo = Utils.calculateStorageUsage();
+    const storageUsage = document.getElementById('storageUsage');
+    if (storageUsage) {
+        storageUsage.textContent = `${storageInfo.percentage}% used`;
+    }
+}

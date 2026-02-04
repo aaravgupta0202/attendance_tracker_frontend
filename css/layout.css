@@ -67,24 +67,15 @@
     max-width: 768px;
     margin: 0 auto;
     width: 100%;
+    /* Safe area for mobile - prevents bottom text clipping */
+    padding-bottom: max(env(safe-area-inset-bottom, 20px), var(--spacing-lg));
 }
 
 .setup-content, .stats-content {
-    padding-bottom: calc(var(--spacing-xl) + 60px); /* Account for bottom nav */
+    padding-bottom: max(env(safe-area-inset-bottom, 20px), var(--spacing-xl));
 }
 
-.main-content {
-    flex: 1;
-    padding: var(--spacing-lg);
-    max-width: 768px;
-    margin: 0 auto;
-    width: 100%;
-    padding-bottom: max(env(safe-area-inset-bottom), var(--spacing-lg)); /* Safe area for mobile */
-}
-
-.setup-content, .stats-content {
-    padding-bottom: max(env(safe-area-inset-bottom), var(--spacing-xl)); /* Account for safe area */
-}
+/* REMOVED BOTTOM NAVIGATION SECTION */
 
 /* Side Menu */
 .side-menu {
@@ -373,6 +364,7 @@
 @media (max-width: 640px) {
     .main-content {
         padding: var(--spacing-md);
+        padding-bottom: max(env(safe-area-inset-bottom, 20px), var(--spacing-md));
     }
     
     .stats-overview,
@@ -389,6 +381,10 @@
         font-size: 0.75rem;
         padding: 0.25rem;
     }
+    
+    .app-header {
+        padding: var(--spacing-md);
+    }
 }
 
 @media (min-width: 768px) {
@@ -398,5 +394,6 @@
     
     .main-content {
         padding: var(--spacing-xl);
+        padding-bottom: max(env(safe-area-inset-bottom, 20px), var(--spacing-xl));
     }
 }
