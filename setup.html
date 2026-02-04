@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Setup Attendance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <h1>Setup</h1>
+  <nav>
+    <a href="index.html">Dashboard</a>
+  </nav>
+</header>
+
+<main>
+  <section>
+    <h2>Add Subject</h2>
+    <input id="subjectName" placeholder="Subject name">
+    <input id="target" type="number" placeholder="Target %">
+    <button onclick="addSubject()">Add</button>
+  </section>
+
+  <section>
+    <h2>Timetable</h2>
+    <select id="day"></select>
+    <select id="subjectSelect"></select>
+    <button onclick="addToTimetable()">Add Class</button>
+    <pre id="ttView"></pre>
+  </section>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/setup.js"></script>
+</body>
+</html>
