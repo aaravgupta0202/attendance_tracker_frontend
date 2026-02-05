@@ -1,27 +1,32 @@
-// Setup Page Logic - SIMPLIFIED WORKING VERSION
+// Setup Page Logic - COMPLETELY FIXED VERSION
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Setup page loaded');
+    
     // DOM Elements
     const subjectsList = document.getElementById('subjectsList');
     const subjectsDragList = document.getElementById('subjectsDragList');
     const timetableGrid = document.querySelector('.timetable-grid');
     const addSubjectBtn = document.getElementById('addSubjectBtn');
     const subjectNameInput = document.getElementById('subjectName');
+    const saveBtn = document.getElementById('saveBtn');
     
     // State
     let subjects = [];
     let timetable = {};
+    let currentStep = 1;
 
     // Initialize
     init();
 
     function init() {
+        console.log('Initializing setup...');
         loadData();
         renderSubjects();
         renderTimetableGrid();
+        renderTargets();
         setupEventListeners();
-        
-        // Setup step navigation
         setupStepNavigation();
+        updateStep(1);
     }
 
     function loadData() {
@@ -39,31 +44,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupStepNavigation() {
+        console.log('Setting up step navigation...');
+        
         // Step navigation buttons
         document.querySelectorAll('.btn-next').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const nextStep = parseInt(e.target.dataset.next);
-                goToStep(nextStep);
+                e.preventDefault();
+                const nextStep = parseInt(e.target.dataset.next || e.target.closest('.btn-next').dataset.next);
+                console.log('Next step:', nextStep);
+                if (validateStep(currentStep)) {
+                    goToStep(nextStep);
+                }
             });
         });
 
         document.querySelectorAll('.btn-prev').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const prevStep = parseInt(e.target.dataset.prev);
+                e.preventDefault();
+                const prevStep = parseInt(e.target.dataset.prev || e.target.closest('.btn-prev').dataset.prev);
+                console.log('Prev step:', prevStep);
                 goToStep(prevStep);
             });
         });
 
         // Save button
-        const saveBtn = document.getElementById('saveBtn');
         if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
+            saveBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 saveData();
+                if (currentStep === 3) {
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                }
             });
         }
     }
 
     function goToStep(step) {
+        console.log('Going to step:', step);
+        
         // Hide all steps
         document.querySelectorAll('.setup-step').forEach(s => {
             s.classList.remove('active');
@@ -83,14 +103,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
+        currentStep = step;
+        
         // If going to step 3, render targets
         if (step === 3) {
             renderTargets();
         }
+        
+        // Scroll to top of step
+        window.scrollTo(0, 0);
+    }
+
+    function updateStep(step) {
+        currentStep = step;
+        goToStep(step);
     }
 
     // Subject Management
     function renderSubjects() {
+        console.log('Rendering subjects...');
         subjectsList.innerHTML = '';
         subjectsDragList.innerHTML = '';
 
@@ -127,10 +158,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="subject-actions">
-                    <button class="icon-btn edit-subject" title="Edit">
+                    <button class="icon-btn edit-subject-btn" data-id="${subject.id}" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="icon-btn delete-subject" title="Delete">
+                    <button class="icon-btn delete-subject-btn" data-id="${subject.id}" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -151,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             subjectsDragList.appendChild(dragItem);
         });
 
-        // Add event listeners
+        // Add event listeners for edit/delete buttons
         setupSubjectEventListeners();
         setupDragAndDrop();
     }
@@ -163,13 +194,20 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Check if subject already exists
+        if (subjects.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+            Utils.showToast('Subject already exists!', 'error');
+            return;
+        }
+
         const newSubject = {
             id: Utils.generateId(),
             name: name,
             attended: 0,
             total: 0,
             target: 75,
-            color: getRandomColor()
+            color: getRandomColor(),
+            createdAt: new Date().toISOString()
         };
 
         subjects.push(newSubject);
@@ -180,53 +218,89 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupSubjectEventListeners() {
-        // Edit buttons
-        document.querySelectorAll('.edit-subject').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const subjectId = e.target.closest('.subject-item').dataset.id;
-                const subject = subjects.find(s => s.id === subjectId);
-                if (subject) {
-                    const newName = prompt('Edit subject name:', subject.name);
-                    if (newName && newName.trim()) {
-                        subject.name = newName.trim();
-                        renderSubjects();
-                        saveData();
-                    }
-                }
-            });
+        console.log('Setting up subject event listeners...');
+        
+        // Edit buttons - USE EVENT DELEGATION
+        document.addEventListener('click', (e) => {
+            // Handle edit button clicks
+            if (e.target.closest('.edit-subject-btn') || e.target.classList.contains('edit-subject-btn')) {
+                const button = e.target.closest('.edit-subject-btn') || e.target;
+                const subjectId = button.dataset.id;
+                console.log('Edit button clicked for subject:', subjectId);
+                editSubject(subjectId);
+            }
+            
+            // Handle delete button clicks
+            if (e.target.closest('.delete-subject-btn') || e.target.classList.contains('delete-subject-btn')) {
+                const button = e.target.closest('.delete-subject-btn') || e.target;
+                const subjectId = button.dataset.id;
+                console.log('Delete button clicked for subject:', subjectId);
+                deleteSubject(subjectId);
+            }
+        });
+    }
+
+    function editSubject(subjectId) {
+        console.log('Editing subject:', subjectId);
+        const subject = subjects.find(s => s.id === subjectId);
+        if (!subject) {
+            console.error('Subject not found:', subjectId);
+            return;
+        }
+
+        const newName = prompt('Edit subject name:', subject.name);
+        if (newName && newName.trim() && newName !== subject.name) {
+            const error = Utils.validateSubjectName(newName);
+            if (error) {
+                Utils.showToast(error, 'error');
+                return;
+            }
+
+            subject.name = newName.trim();
+            renderSubjects();
+            saveData();
+            Utils.showToast('Subject updated!', 'success');
+        }
+    }
+
+    function deleteSubject(subjectId) {
+        console.log('Deleting subject:', subjectId);
+        if (!confirm('Are you sure you want to delete this subject? This will also remove it from your timetable.')) {
+            return;
+        }
+
+        // Remove from subjects
+        subjects = subjects.filter(s => s.id !== subjectId);
+        
+        // Remove from timetable
+        Object.keys(timetable).forEach(day => {
+            if (Array.isArray(timetable[day])) {
+                timetable[day] = timetable[day].filter(id => id !== subjectId);
+            }
         });
 
-        // Delete buttons
-        document.querySelectorAll('.delete-subject').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const subjectId = e.target.closest('.subject-item').dataset.id;
-                if (confirm('Delete this subject?')) {
-                    subjects = subjects.filter(s => s.id !== subjectId);
-                    // Remove from timetable
-                    Object.keys(timetable).forEach(day => {
-                        if (Array.isArray(timetable[day])) {
-                            timetable[day] = timetable[day].filter(id => id !== subjectId);
-                        }
-                    });
-                    renderSubjects();
-                    renderTimetableGrid();
-                    saveData();
-                }
-            });
-        });
+        renderSubjects();
+        renderTimetableGrid();
+        saveData();
+        Utils.showToast('Subject deleted!', 'success');
     }
 
     // Drag and Drop Functions
     function setupDragAndDrop() {
+        console.log('Setting up drag and drop...');
+        
         const dragItems = document.querySelectorAll('.subject-drag-item');
         
         dragItems.forEach(item => {
             item.addEventListener('dragstart', (e) => {
+                console.log('Drag started:', item.dataset.id);
                 e.dataTransfer.setData('text/plain', item.dataset.id);
+                e.dataTransfer.effectAllowed = 'move';
                 item.classList.add('dragging');
             });
 
             item.addEventListener('dragend', () => {
+                console.log('Drag ended');
                 item.classList.remove('dragging');
             });
         });
@@ -236,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZones.forEach(zone => {
             zone.addEventListener('dragover', (e) => {
                 e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
                 zone.classList.add('drag-over');
             });
 
@@ -249,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const subjectId = e.dataTransfer.getData('text/plain');
                 const day = zone.dataset.day;
+                console.log('Dropped subject', subjectId, 'on day', day);
                 
                 if (subjectId) {
                     addSubjectToDay(day, subjectId);
@@ -259,9 +335,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Timetable Functions
     function renderTimetableGrid() {
-        if (!timetableGrid) return;
+        if (!timetableGrid) {
+            console.error('Timetable grid not found!');
+            return;
+        }
         
+        console.log('Rendering timetable grid...');
         timetableGrid.innerHTML = '';
+        
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const today = new Date().getDay();
 
@@ -278,6 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isToday = index === today;
             const dayName = day.charAt(0).toUpperCase() + day.slice(1);
             
+            // Get subjects for this day
             const subjectsInDay = timetable[day]
                 .map(id => subjects.find(s => s.id === id))
                 .filter(Boolean);
@@ -298,18 +380,21 @@ document.addEventListener('DOMContentLoaded', () => {
             timetableGrid.appendChild(dayColumn);
         });
 
-        // Add remove button listeners
-        document.querySelectorAll('.remove-subject').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const subjectId = e.target.dataset.id;
-                const day = e.target.closest('.day-column').dataset.day;
+        // Add remove button listeners using event delegation
+        timetableGrid.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-subject') || e.target.closest('.remove-subject')) {
+                const button = e.target.closest('.remove-subject') || e.target;
+                const subjectId = button.dataset.id;
+                const day = button.closest('.day-column').dataset.day;
+                console.log('Remove clicked for subject:', subjectId, 'on day:', day);
                 removeSubjectFromDay(day, subjectId);
-            });
+            }
         });
     }
 
     function addSubjectToDay(day, subjectId) {
+        console.log('Adding subject to day:', subjectId, day);
+        
         if (!timetable[day]) {
             timetable[day] = [];
         }
@@ -325,10 +410,14 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTimetableGrid();
             saveData();
             Utils.showToast(`Added ${subject.name} to ${day}`, 'success');
+        } else {
+            Utils.showToast('Subject already in this day!', 'warning');
         }
     }
 
     function removeSubjectFromDay(day, subjectId) {
+        console.log('Removing subject from day:', subjectId, day);
+        
         if (timetable[day]) {
             timetable[day] = timetable[day].filter(id => id !== subjectId);
             renderTimetableGrid();
@@ -344,8 +433,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Targets Functions
     function renderTargets() {
         const targetsList = document.getElementById('targetsList');
-        if (!targetsList) return;
+        if (!targetsList) {
+            console.error('Targets list not found!');
+            return;
+        }
         
+        console.log('Rendering targets...');
         targetsList.innerHTML = '';
 
         if (subjects.length === 0) {
@@ -387,15 +480,16 @@ document.addEventListener('DOMContentLoaded', () => {
             targetsList.appendChild(targetItem);
         });
 
-        // Add slider events
-        document.querySelectorAll('.target-slider').forEach(slider => {
-            const valueSpan = slider.nextElementSibling;
-            
-            slider.addEventListener('input', (e) => {
+        // Add slider events using event delegation
+        targetsList.addEventListener('input', (e) => {
+            if (e.target.classList.contains('target-slider')) {
+                const valueSpan = e.target.nextElementSibling;
                 valueSpan.textContent = `${e.target.value}%`;
-            });
+            }
+        });
 
-            slider.addEventListener('change', (e) => {
+        targetsList.addEventListener('change', (e) => {
+            if (e.target.classList.contains('target-slider')) {
                 const subjectId = e.target.dataset.id;
                 const value = parseInt(e.target.value);
                 
@@ -405,8 +499,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveData();
                     Utils.showToast('Target updated!', 'success');
                 }
-            });
+            }
         });
+    }
+
+    // Validation
+    function validateStep(step) {
+        console.log('Validating step:', step);
+        
+        switch(step) {
+            case 1:
+                if (subjects.length === 0) {
+                    Utils.showToast('Please add at least one subject', 'error');
+                    return false;
+                }
+                return true;
+                
+            case 2:
+                // Check if timetable has at least one class
+                let hasClasses = false;
+                Object.keys(timetable).forEach(day => {
+                    if (Array.isArray(timetable[day]) && timetable[day].length > 0) {
+                        hasClasses = true;
+                    }
+                });
+                
+                if (!hasClasses) {
+                    Utils.showToast('Please add at least one class to your timetable', 'error');
+                    return false;
+                }
+                return true;
+                
+            case 3:
+                return true;
+                
+            default:
+                return true;
+        }
     }
 
     // Utility Functions
@@ -417,13 +546,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event Listeners
     function setupEventListeners() {
+        console.log('Setting up event listeners...');
+        
         if (addSubjectBtn) {
-            addSubjectBtn.addEventListener('click', addSubject);
+            addSubjectBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                addSubject();
+            });
         }
         
         if (subjectNameInput) {
             subjectNameInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') addSubject();
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSubject();
+                }
             });
         }
     }

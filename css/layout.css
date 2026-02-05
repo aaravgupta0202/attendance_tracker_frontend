@@ -397,3 +397,29 @@
         padding-bottom: max(env(safe-area-inset-bottom, 20px), var(--spacing-xl));
     }
 }
+
+/* Setup Page Specific Fixes */
+.setup-content {
+    padding-bottom: 30px !important; /* Reduced from large value */
+    overflow-y: auto;
+}
+
+.setup-step {
+    min-height: calc(100vh - 200px);
+    padding-bottom: 60px; /* Space for next button */
+}
+
+.setup-step.active {
+    display: flex;
+    flex-direction: column;
+}
+
+.step-footer {
+    margin-top: auto;
+    padding-top: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, var(--light), rgba(248, 250, 252, 0.9));
+    border-top: 1px solid var(--gray-200);
+}

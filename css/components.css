@@ -862,3 +862,46 @@
         flex-direction: column;
     }
 }
+
+/* Event Delegation Fixes */
+.subject-actions button {
+    z-index: 10;
+    position: relative;
+}
+
+.edit-subject-btn, .delete-subject-btn {
+    cursor: pointer !important;
+}
+
+.edit-subject-btn:hover {
+    color: var(--primary) !important;
+    background: rgba(99, 102, 241, 0.1) !important;
+}
+
+.delete-subject-btn:hover {
+    color: var(--danger) !important;
+    background: rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Make buttons more touch-friendly on mobile */
+@media (max-width: 640px) {
+    .icon-btn {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.3rem !important;
+    }
+    
+    .btn {
+        padding: 0.875rem 1.25rem !important;
+        font-size: 1rem !important;
+    }
+    
+    .step-footer {
+        padding: var(--spacing-md) 0 !important;
+    }
+    
+    .btn-next, .btn-prev {
+        min-height: 50px !important;
+        font-size: 1rem !important;
+    }
+}
