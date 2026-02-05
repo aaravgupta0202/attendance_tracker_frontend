@@ -19,14 +19,18 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
 
     function init() {
-        console.log('Initializing setup...');
-        loadData();
-        renderSubjects();
-        renderTimetableGrid();
-        renderTargets();
-        setupEventListeners();
-        setupStepNavigation();
-        updateStep(1);
+    console.log('Initializing setup...');
+    loadData();
+    renderSubjects();
+    renderTimetableGrid();
+    renderTargets();
+    setupEventListeners();
+    setupStepNavigation();
+    updateStep(1);
+    // Drag only if elements exist (setup.html only)
+    if (document.getElementById('subjectsDragList')) {
+        setupDragAndDrop();
+    }
     }
 
     function loadData() {
@@ -221,22 +225,22 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Setting up subject event listeners...');
         
         // Edit buttons - USE EVENT DELEGATION
-        document.addEventListener('click', (e) => {
-            // Handle edit button clicks
-            if (e.target.closest('.edit-subject-btn') || e.target.classList.contains('edit-subject-btn')) {
-                const button = e.target.closest('.edit-subject-btn') || e.target;
-                const subjectId = button.dataset.id;
-                console.log('Edit button clicked for subject:', subjectId);
-                editSubject(subjectId);
-            }
-            
-            // Handle delete button clicks
-            if (e.target.closest('.delete-subject-btn') || e.target.classList.contains('delete-subject-btn')) {
-                const button = e.target.closest('.delete-subject-btn') || e.target;
-                const subjectId = button.dataset.id;
-                console.log('Delete button clicked for subject:', subjectId);
-                deleteSubject(subjectId);
-            }
+        // In setupSubjectEventListeners function, replace document.addEventListener with:
+        const setupContent = document.querySelector('.setup-content');
+        setupContent.addEventListener('click', (e) => {
+        // Handle edit/delete clicks - now scoped to setup-content only
+        if (e.target.closest('.edit-subject-btn')) {
+            const button = e.target.closest('.edit-subject-btn');
+            const subjectId = button.dataset.id;
+            console.log('Edit button clicked for subject', subjectId);
+            editSubject(subjectId);
+        }
+        if (e.target.closest('.delete-subject-btn')) {
+            const button = e.target.closest('.delete-subject-btn');
+            const subjectId = button.dataset.id;
+            console.log('Delete button clicked for subject', subjectId);
+            deleteSubject(subjectId);
+        }
         });
     }
 

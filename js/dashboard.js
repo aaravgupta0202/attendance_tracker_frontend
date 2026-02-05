@@ -24,13 +24,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize
     init();
 
-    function init() {
-        updateDateDisplay();
-        checkSetupStatus();
-        loadTodayClasses();
-        setupEventListeners();
-        setupMenu();
-    }
+    // Add to init() function start:
+function init() {
+  // Clear any setup listeners if somehow loaded
+  if (!window.location.pathname.includes('setup.html')) {
+    document.querySelectorAll('.subjects-drag-list, .subject-drag-item').forEach(el => el.remove());
+  }
+  updateDateDisplay();
+  checkSetupStatus();
+  loadTodayClasses();
+  setupEventListeners();
+  setupMenu();
+}
+
 
     function updateDateDisplay() {
         const today = new Date();

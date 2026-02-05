@@ -905,3 +905,35 @@
         font-size: 1rem !important;
     }
 }
+
+/* Add to end of existing components.css */
+.subject-actions {
+  z-index: 20 !important;
+  position: relative;
+}
+
+.subject-actions button {
+  width: 44px !important;
+  height: 44px !important;
+  font-size: 1.3rem !important;
+  border-radius: var(--radius-full);
+  background: rgba(99, 102, 241, 0.1) !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.edit-subject-btn:hover {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: var(--primary) !important;
+}
+
+.delete-subject-btn:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: var(--danger) !important;
+}
+
+/* Hide drag elements outside setup */
+:not(.setup-content) .subjects-drag-list,
+:not(.setup-content) .subject-drag-item {
+  display: none !important;
+}

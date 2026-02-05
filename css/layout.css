@@ -423,3 +423,27 @@
     background: linear-gradient(to top, var(--light), rgba(248, 250, 252, 0.9));
     border-top: 1px solid var(--gray-200);
 }
+
+/* Add to end of existing layout.css */
+.setup-content, .stats-content {
+  padding-bottom: 80px !important; /* Extra space for buttons */
+}
+
+.step-footer {
+  margin-top: auto;
+  padding: var(--spacing-lg) 0;
+  position: relative !important; /* No sticky */
+  background: none;
+  border-top: none;
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  position: relative; /* Inline, no bottom fixed */
+}
