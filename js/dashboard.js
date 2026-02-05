@@ -57,20 +57,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadTodayClasses() {
         const today = new Date();
         const dayName = Utils.getDayName(today).toLowerCase();
-        const subjectIds = Storage.getSubjectsForDay(dayName);
-        const subjects = Storage.getSubjects();
-        const todayHistory = Storage.getHistoryForDate(Utils.formatDate(today));
+        console.log('Today is:', dayName);
         
-        console.log('Today:', dayName);
-        console.log('Subject IDs:', subjectIds);
-        console.log('All subjects:', subjects);
+        const subjectIds = Storage.getSubjectsForDay(dayName);
+        console.log('Subject IDs for today:', subjectIds);
+        
+        const subjects = Storage.getSubjects();
+        console.log('All subjects from storage:', subjects);
+        
+        const todayHistory = Storage.getHistoryForDate(Utils.formatDate(today));
         
         // Filter subjects for today
         const todaySubjects = subjects.filter(subject => 
             subjectIds.includes(subject.id)
         );
         
-        console.log('Today subjects:', todaySubjects);
+        console.log('Filtered today subjects:', todaySubjects);
 
         // Update count
         classCount.textContent = todaySubjects.length;
@@ -79,7 +81,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (todaySubjects.length === 0) {
             classesContainer.style.display = 'none';
             emptyState.style.display = 'block';
-            console.log('No classes today');
+            emptyState.innerHTML = `
+                <div class="empty-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <h3>No classes scheduled for today</h3>
+                <p>Check your timetable in Setup page</p>
+                <a href="setup.html" class="btn btn-primary">
+                    <i class="fas fa-cog"></i> Go to Setup
+                </a>
+            `;
             return;
         } else {
             classesContainer.style.display = 'block';

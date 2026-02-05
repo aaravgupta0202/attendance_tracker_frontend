@@ -175,7 +175,12 @@ const Storage = {
     getSubjectsForDay: (dayName) => {
         const timetable = Storage.getTimetable();
         const dayKey = dayName.toLowerCase();
-        return timetable[dayKey] || [];
+        console.log('Getting subjects for day:', dayKey, 'timetable:', timetable);
+        
+        if (timetable[dayKey] && Array.isArray(timetable[dayKey])) {
+            return timetable[dayKey];
+        }
+        return [];
     },
 
     // History
