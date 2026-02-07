@@ -262,28 +262,18 @@
     margin-bottom: var(--spacing-lg);
 }
 
+/* Day Selection Grid - Horizontal on all devices */
 .timetable-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
     gap: var(--spacing-sm);
-    max-height: 500px;
-    overflow-y: auto;
-    padding-right: 8px;
-    scrollbar-width: thin;
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
 }
 
 .timetable-grid::-webkit-scrollbar {
-    width: 6px;
-}
-
-.timetable-grid::-webkit-scrollbar-track {
-    background: rgba(26, 35, 126, 0.05);
-    border-radius: 3px;
-}
-
-.timetable-grid::-webkit-scrollbar-thumb {
-    background: rgba(26, 35, 126, 0.2);
-    border-radius: 3px;
+    display: none;
 }
 
 .day-column {
@@ -291,11 +281,28 @@
     border: 2px dashed var(--glass-border);
     border-radius: var(--radius-lg);
     padding: var(--spacing-md);
-    min-height: 120px;
+    min-height: 140px;
     transition: all var(--transition);
 }
 
-/* Update drag items to be horizontal scroll */
+.day-header {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    color: var(--primary);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--glass-border);
+    font-size: 0.85rem;
+}
+
+.day-subjects {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 80px;
+}
+
+/* Drag container */
 .drag-container {
     margin-top: var(--spacing-lg);
 }
@@ -551,9 +558,49 @@
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
         }
 
+        /* Responsive - Keep horizontal grid on all screen sizes */
         @media (max-width: 768px) {
             .timetable-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(7, 1fr);
+                gap: 4px;
+            }
+            
+            .day-column {
+                min-height: 90px;
+                padding: 8px 4px;
+                border-radius: 10px;
+            }
+            
+            .day-header {
+                font-size: 0.55rem;
+                margin-bottom: 6px;
+                padding-bottom: 4px;
+                text-transform: uppercase;
+            }
+            
+            .day-subjects {
+                min-height: 50px;
+                gap: 3px;
+            }
+            
+            .day-subject {
+                padding: 4px 2px;
+                font-size: 0.55rem;
+                border-radius: 4px;
+            }
+            
+            .remove-subject {
+                width: 14px;
+                height: 14px;
+                font-size: 7px;
+                top: -4px;
+                right: -4px;
+                opacity: 1;
+            }
+            
+            .empty-day {
+                font-size: 0.5rem;
+                padding: 4px;
             }
             
             .subjects-grid {
@@ -561,19 +608,26 @@
             }
             
             .setup-stepper {
-                flex-wrap: wrap;
+                flex-wrap: nowrap;
+                gap: 4px;
             }
             
             .step-line {
-                display: none;
+                width: 20px;
+            }
+            
+            .step-number {
+                width: 32px;
+                height: 32px;
+                font-size: 0.9rem;
+            }
+            
+            .step-label {
+                font-size: 0.65rem;
             }
         }
 
         @media (max-width: 480px) {
-            .timetable-grid {
-                grid-template-columns: 1fr;
-            }
-            
             .subject-form {
                 flex-direction: column;
             }
@@ -581,6 +635,48 @@
             .setup-actions {
                 flex-direction: column;
                 gap: var(--spacing-sm);
+            }
+            
+            .step-card {
+                padding: 14px;
+            }
+            
+            .step-header {
+                margin-bottom: 16px;
+            }
+            
+            .step-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.3rem;
+            }
+            
+            .step-header h2 {
+                font-size: 1.2rem;
+            }
+            
+            .step-header p {
+                font-size: 0.85rem;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .timetable-grid {
+                gap: 3px;
+            }
+            
+            .day-column {
+                min-height: 75px;
+                padding: 6px 3px;
+            }
+            
+            .day-header {
+                font-size: 0.5rem;
+            }
+            
+            .day-subject {
+                font-size: 0.5rem;
+                padding: 3px 1px;
             }
         }
     </style>

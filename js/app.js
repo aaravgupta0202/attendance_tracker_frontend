@@ -1,97 +1,206 @@
-// App Initialization
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('App initialized');
-    
-    // Initialize PWA
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js')
-            .then(registration => {
-                console.log('Service Worker registered:', registration);
-            })
-            .catch(error => {
-                console.log('Service Worker registration failed:', error);
-            });
+// Utility Functions
+const Utils = {
+    // Generate unique ID
+    generateId: () => {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    },
+
+    // Format date
+    formatDate: (date = new Date()) => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    },
+
+    // Get day name
+    getDayName: (date = new Date()) => {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return days[date.getDay()];
+    },
+
+    // Format date for display
+    formatDisplayDate: (date = new Date()) => {
+        const d = new Date(date);
+        return d.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    },
+
+    // Calculate percentage
+    calculatePercentage: (attended, total) => {
+        if (total === 0) return 0;
+        return Math.round((attended / total) * 100);
+    },
+
+    // Get risk level
+    getRiskLevel: (percentage, target = 75) => {
+        if (percentage >= target + 10) return 'low';
+        if (percentage >= target) return 'medium';
+        return 'high';
+    },
+
+    // Get color based on percentage
+    getProgressColor: (percentage, target = 75) => {
+        if (percentage >= target + 10) return 'success';
+        if (percentage >= target) return 'warning';
+        return 'danger';
+    },
+
+    // Show toast notification
+    showToast: (message, type = 'info', duration = 3000) => {
+    const container = document.getElementById('toastContainer');
+    if (!container) {
+        // Create container if it doesn't exist
+        const newContainer = document.createElement('div');
+        newContainer.className = 'toast-container';
+        newContainer.id = 'toastContainer';
+        document.body.appendChild(newContainer);
     }
     
-    // Check for first run
-    const settings = JSON.parse(localStorage.getItem('attendo_settings') || '{}');
-    if (settings.firstRun !== false) {
-        // Show welcome message on first run
-        setTimeout(() => {
-            Utils.showToast('Welcome to Attendo! Start by setting up your subjects.', 'info', 5000);
-            settings.firstRun = false;
-            localStorage.setItem('attendo_settings', JSON.stringify(settings));
-        }, 1000);
-    }
+    const finalContainer = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
     
-    // Add ripple effect to buttons
-    document.addEventListener('click', function(e) {
-        if (e.target.matches('.btn, .action-btn, .nav-btn, .icon-btn')) {
-            const btn = e.target;
-            const rect = btn.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            const x = e.clientX - rect.left - size / 2;
-            const y = e.clientY - rect.top - size / 2;
-            
-            const ripple = document.createElement('span');
-            ripple.style.cssText = `
-                position: absolute;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.5);
-                transform: scale(0);
-                animation: ripple 0.6s linear;
-                width: ${size}px;
-                height: ${size}px;
-                top: ${y}px;
-                left: ${x}px;
-                pointer-events: none;
-            `;
-            
-            btn.style.position = 'relative';
-            btn.style.overflow = 'hidden';
-            btn.appendChild(ripple);
-            
-            setTimeout(() => ripple.remove(), 600);
-        }
-    });
+    const icons = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-times-circle',
+        warning: 'fas fa-exclamation-triangle',
+        info: 'fas fa-info-circle'
+    };
     
-    // Add ripple animation style
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes ripple {
-            to {
-                transform: scale(4);
-                opacity: 0;
-            }
-        }
+    const titles = {
+        success: 'Success',
+        error: 'Error',
+        warning: 'Warning',
+        info: 'Info'
+    };
+
+    toast.innerHTML = `
+        <i class="${icons[type] || icons.info}"></i>
+        <div class="toast-content">
+            <h4>${titles[type] || 'Info'}</h4>
+            <p>${message}</p>
+        </div>
     `;
-    document.head.appendChild(style);
-    
-    // Handle online/offline status
-    window.addEventListener('online', () => {
-        Utils.showToast('You are back online!', 'success');
-    });
-    
-    window.addEventListener('offline', () => {
-        Utils.showToast('You are offline. Changes will sync when back online.', 'warning');
-    });
-    
-    // Handle keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        // Ctrl+S to save
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            const saveBtn = document.querySelector('#saveSetupBtn, #saveBtn');
-            if (saveBtn) saveBtn.click();
+
+    finalContainer.appendChild(toast);
+
+    // Remove existing toasts if there are more than 3
+    const allToasts = finalContainer.querySelectorAll('.toast');
+    if (allToasts.length > 3) {
+        allToasts[0].remove();
+    }
+
+    // Animate in
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    }, 10);
+
+    // Remove after duration
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 300);
+    }, duration);
+
+    return toast;
+},
+
+    // Debounce function
+    debounce: (func, wait) => {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    },
+
+    // Calculate needed classes
+    calculateNeeded: (attended, total, target) => {
+        if (target <= 0) return 0;
+        const needed = Math.ceil((target * total - 100 * attended) / (100 - target));
+        return Math.max(0, needed);
+    },
+
+    // Calculate safe to miss
+    calculateSafeToMiss: (attended, total, target) => {
+        if (target <= 0) return 0;
+        const safe = Math.floor((100 * attended / target) - total);
+        return Math.max(0, safe);
+    },
+
+    // Validate subject name
+    validateSubjectName: (name) => {
+        if (!name || name.trim().length === 0) {
+            return 'Subject name is required';
         }
-        
-        // Escape to close menu
-        if (e.key === 'Escape') {
-            const menu = document.querySelector('.side-menu.active');
-            if (menu) {
-                menu.classList.remove('active');
-                document.querySelector('.menu-overlay')?.classList.remove('active');
+        if (name.length > 50) {
+            return 'Subject name must be less than 50 characters';
+        }
+        return null;
+    },
+
+    // Get random color
+    getRandomColor: () => {
+        const colors = [
+            '#1a237e', '#0d145a', '#534bae',
+            '#10b981', '#059669', '#34d399',
+            '#ef4444', '#dc2626', '#f87171',
+            '#f59e0b', '#d97706', '#fbbf24'
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+    },
+
+    // Copy to clipboard
+    copyToClipboard: async (text) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch (err) {
+            console.error('Copy failed:', err);
+            return false;
+        }
+    },
+
+    // Calculate storage usage
+    calculateStorageUsage: () => {
+        let total = 0;
+        for (let key in localStorage) {
+            if (localStorage.hasOwnProperty(key)) {
+                total += localStorage[key].length * 2;
             }
         }
-    });
-});
+        const percentage = (total / (5 * 1024 * 1024)) * 100; // 5MB limit
+        return {
+            used: total,
+            percentage: Math.min(100, Math.round(percentage)),
+            formatted: `${(total / 1024).toFixed(2)} KB / 5 MB`
+        };
+    },
+    
+    // Get month name
+    getMonthName: (monthIndex) => {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+        return months[monthIndex];
+    },
+    
+    // Get days in month
+    getDaysInMonth: (year, month) => {
+        return new Date(year, month + 1, 0).getDate();
+    }
+};
