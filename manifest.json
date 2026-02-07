@@ -1,11 +1,11 @@
 {
-  "name": "AttendSwipe",
-  "short_name": "AttendSwipe",
-  "description": "Swipe-based attendance tracker for students",
+  "name": "Attendo",
+  "short_name": "Attendo",
+  "description": "Beautiful swipe-based attendance tracker for students",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#6366f1",
+  "background_color": "#f8f9fa",
+  "theme_color": "#1a237e",
   "orientation": "portrait-primary",
   "icons": [
     {

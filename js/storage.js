@@ -2,27 +2,23 @@
 const Storage = {
     // Keys
     KEYS: {
-        SUBJECTS: 'attendance_subjects',
-        TIMETABLE: 'attendance_timetable',
-        HISTORY: 'attendance_history',
-        SETTINGS: 'attendance_settings',
-        META: 'attendance_meta'
+        SUBJECTS: 'attendo_subjects',
+        TIMETABLE: 'attendo_timetable',
+        HISTORY: 'attendo_history',
+        SETTINGS: 'attendo_settings'
     },
 
-    // Initialize storage
+    // Initialize
     init: () => {
-        // Check if storage is available
         if (!Storage.isAvailable()) {
-            console.error('LocalStorage is not available');
+            console.error('LocalStorage not available');
             return false;
         }
-
-        // Initialize data structure if not exists
         Storage.ensureDataStructure();
         return true;
     },
 
-    // Check if localStorage is available
+    // Check availability
     isAvailable: () => {
         try {
             const test = '__test__';
@@ -36,51 +32,26 @@ const Storage = {
 
     // Ensure data structure exists
     ensureDataStructure: () => {
-        // Subjects
         if (!localStorage.getItem(Storage.KEYS.SUBJECTS)) {
             localStorage.setItem(Storage.KEYS.SUBJECTS, JSON.stringify([]));
         }
-
-        // Timetable
         if (!localStorage.getItem(Storage.KEYS.TIMETABLE)) {
             const emptyTimetable = {
-                sunday: [],
-                monday: [],
-                tuesday: [],
-                wednesday: [],
-                thursday: [],
-                friday: [],
-                saturday: []
+                sunday: [], monday: [], tuesday: [], wednesday: [],
+                thursday: [], friday: [], saturday: []
             };
             localStorage.setItem(Storage.KEYS.TIMETABLE, JSON.stringify(emptyTimetable));
         }
-
-        // History
         if (!localStorage.getItem(Storage.KEYS.HISTORY)) {
             localStorage.setItem(Storage.KEYS.HISTORY, JSON.stringify([]));
         }
-
-        // Settings
         if (!localStorage.getItem(Storage.KEYS.SETTINGS)) {
-            const defaultSettings = {
+            localStorage.setItem(Storage.KEYS.SETTINGS, JSON.stringify({
                 version: '1.0.0',
                 defaultTarget: 75,
-                enableNotifications: false,
                 theme: 'light',
-                swipeSensitivity: 100,
                 firstRun: true
-            };
-            localStorage.setItem(Storage.KEYS.SETTINGS, JSON.stringify(defaultSettings));
-        }
-
-        // Meta
-        if (!localStorage.getItem(Storage.KEYS.META)) {
-            const meta = {
-                created: new Date().toISOString(),
-                lastModified: new Date().toISOString(),
-                totalOperations: 0
-            };
-            localStorage.setItem(Storage.KEYS.META, JSON.stringify(meta));
+            }));
         }
     },
 
@@ -89,11 +60,13 @@ const Storage = {
         try {
             const subjects = JSON.parse(localStorage.getItem(Storage.KEYS.SUBJECTS) || '[]');
             return subjects.map(subject => ({
-                ...subject,
+                id: subject.id || Utils.generateId(),
+                name: subject.name || 'Unnamed',
                 attended: subject.attended || 0,
                 total: subject.total || 0,
                 target: subject.target || 75,
-                color: subject.color || '#6366f1'
+                color: subject.color || Utils.getRandomColor(),
+                createdAt: subject.createdAt || new Date().toISOString()
             }));
         } catch (e) {
             console.error('Error getting subjects:', e);
@@ -104,7 +77,6 @@ const Storage = {
     saveSubjects: (subjects) => {
         try {
             localStorage.setItem(Storage.KEYS.SUBJECTS, JSON.stringify(subjects));
-            Storage.updateMeta();
             return true;
         } catch (e) {
             console.error('Error saving subjects:', e);
@@ -112,15 +84,15 @@ const Storage = {
         }
     },
 
-    addSubject: (subject) => {
+    addSubject: (subjectData) => {
         const subjects = Storage.getSubjects();
         const newSubject = {
             id: Utils.generateId(),
-            name: subject.name.trim(),
+            name: subjectData.name.trim(),
             attended: 0,
             total: 0,
-            target: parseInt(subject.target) || 75,
-            color: subject.color || '#6366f1',
+            target: parseInt(subjectData.target) || 75,
+            color: subjectData.color || Utils.getRandomColor(),
             createdAt: new Date().toISOString()
         };
         subjects.push(newSubject);
@@ -149,22 +121,13 @@ const Storage = {
             return JSON.parse(localStorage.getItem(Storage.KEYS.TIMETABLE) || '{}');
         } catch (e) {
             console.error('Error getting timetable:', e);
-            return {
-                sunday: [],
-                monday: [],
-                tuesday: [],
-                wednesday: [],
-                thursday: [],
-                friday: [],
-                saturday: []
-            };
+            return {};
         }
     },
 
     saveTimetable: (timetable) => {
         try {
             localStorage.setItem(Storage.KEYS.TIMETABLE, JSON.stringify(timetable));
-            Storage.updateMeta();
             return true;
         } catch (e) {
             console.error('Error saving timetable:', e);
@@ -175,12 +138,7 @@ const Storage = {
     getSubjectsForDay: (dayName) => {
         const timetable = Storage.getTimetable();
         const dayKey = dayName.toLowerCase();
-        console.log('Getting subjects for day:', dayKey, 'timetable:', timetable);
-        
-        if (timetable[dayKey] && Array.isArray(timetable[dayKey])) {
-            return timetable[dayKey];
-        }
-        return [];
+        return timetable[dayKey] || [];
     },
 
     // History
@@ -196,7 +154,6 @@ const Storage = {
     saveHistory: (history) => {
         try {
             localStorage.setItem(Storage.KEYS.HISTORY, JSON.stringify(history));
-            Storage.updateMeta();
             return true;
         } catch (e) {
             console.error('Error saving history:', e);
@@ -218,11 +175,15 @@ const Storage = {
             history.push(dateEntry);
         }
 
-        // Remove existing entry for this subject on this date
-        dateEntry.entries = dateEntry.entries.filter(entry => entry.subjectId !== subjectId);
+        // Remove existing entry
+        dateEntry.entries = dateEntry.entries.filter(e => e.subjectId !== subjectId);
         
         // Add new entry
-        dateEntry.entries.push({ subjectId, status, timestamp: new Date().toISOString() });
+        dateEntry.entries.push({
+            subjectId,
+            status,
+            timestamp: new Date().toISOString()
+        });
 
         // Update subject totals
         const subjects = Storage.getSubjects();
@@ -230,10 +191,10 @@ const Storage = {
         
         if (subjectIndex !== -1) {
             const subject = subjects[subjectIndex];
-            const oldEntry = dateEntry.entries.find(e => e.subjectId === subjectId && e.status !== status);
             
+            // Remove old status from totals
+            const oldEntry = dateEntry.entries.find(e => e.subjectId === subjectId && e.status !== status);
             if (oldEntry) {
-                // Remove old status from totals
                 if (oldEntry.status === 'attended') {
                     subject.attended = Math.max(0, subject.attended - 1);
                     subject.total = Math.max(0, subject.total - 1);
@@ -249,7 +210,6 @@ const Storage = {
             } else if (status === 'missed') {
                 subject.total += 1;
             }
-            // 'cancelled' doesn't affect totals
 
             subjects[subjectIndex] = subject;
             Storage.saveSubjects(subjects);
@@ -275,70 +235,25 @@ const Storage = {
         }
 
         // Revert subject totals
-        const subjects = Storage.getSubjects();
-        const subjectIndex = subjects.findIndex(s => s.id === lastAction.subjectId);
-        
-        if (subjectIndex !== -1 && lastAction.status !== 'cancelled') {
-            const subject = subjects[subjectIndex];
-            if (lastAction.status === 'attended') {
-                subject.attended = Math.max(0, subject.attended - 1);
-                subject.total = Math.max(0, subject.total - 1);
-            } else if (lastAction.status === 'missed') {
-                subject.total = Math.max(0, subject.total - 1);
+        if (lastAction.status !== 'cancelled') {
+            const subjects = Storage.getSubjects();
+            const subjectIndex = subjects.findIndex(s => s.id === lastAction.subjectId);
+            
+            if (subjectIndex !== -1) {
+                const subject = subjects[subjectIndex];
+                if (lastAction.status === 'attended') {
+                    subject.attended = Math.max(0, subject.attended - 1);
+                    subject.total = Math.max(0, subject.total - 1);
+                } else if (lastAction.status === 'missed') {
+                    subject.total = Math.max(0, subject.total - 1);
+                }
+                subjects[subjectIndex] = subject;
+                Storage.saveSubjects(subjects);
             }
-            subjects[subjectIndex] = subject;
-            Storage.saveSubjects(subjects);
         }
 
         Storage.saveHistory(history);
         return lastAction;
-    },
-
-    // Settings
-    getSettings: () => {
-        try {
-            return JSON.parse(localStorage.getItem(Storage.KEYS.SETTINGS) || '{}');
-        } catch (e) {
-            console.error('Error getting settings:', e);
-            return {};
-        }
-    },
-
-    saveSettings: (settings) => {
-        try {
-            localStorage.setItem(Storage.KEYS.SETTINGS, JSON.stringify(settings));
-            return true;
-        } catch (e) {
-            console.error('Error saving settings:', e);
-            return false;
-        }
-    },
-
-    updateSetting: (key, value) => {
-        const settings = Storage.getSettings();
-        settings[key] = value;
-        return Storage.saveSettings(settings);
-    },
-
-    // Meta
-    updateMeta: () => {
-        try {
-            const meta = Storage.getMeta();
-            meta.lastModified = new Date().toISOString();
-            meta.totalOperations = (meta.totalOperations || 0) + 1;
-            localStorage.setItem(Storage.KEYS.META, JSON.stringify(meta));
-        } catch (e) {
-            console.error('Error updating meta:', e);
-        }
-    },
-
-    getMeta: () => {
-        try {
-            return JSON.parse(localStorage.getItem(Storage.KEYS.META) || '{}');
-        } catch (e) {
-            console.error('Error getting meta:', e);
-            return {};
-        }
     },
 
     // Export/Import
@@ -349,8 +264,7 @@ const Storage = {
             subjects: Storage.getSubjects(),
             timetable: Storage.getTimetable(),
             history: Storage.getHistory(),
-            settings: Storage.getSettings(),
-            meta: Storage.getMeta()
+            settings: JSON.parse(localStorage.getItem(Storage.KEYS.SETTINGS) || '{}')
         };
         return JSON.stringify(data, null, 2);
     },
@@ -359,31 +273,25 @@ const Storage = {
         try {
             const data = JSON.parse(jsonString);
             
-            // Validate data
-            if (!data.version || !data.subjects || !data.timetable || !data.history) {
+            if (!data.version || !data.subjects || !data.timetable) {
                 throw new Error('Invalid data format');
             }
 
             // Backup current data
             const backup = Storage.exportData();
             
-            // Import data
-            localStorage.setItem(Storage.KEYS.SUBJECTS, JSON.stringify(data.subjects || []));
-            localStorage.setItem(Storage.KEYS.TIMETABLE, JSON.stringify(data.timetable || {}));
-            localStorage.setItem(Storage.KEYS.HISTORY, JSON.stringify(data.history || []));
+            // Import new data
+            Storage.saveSubjects(data.subjects);
+            Storage.saveTimetable(data.timetable);
+            Storage.saveHistory(data.history || []);
             
             if (data.settings) {
                 localStorage.setItem(Storage.KEYS.SETTINGS, JSON.stringify(data.settings));
             }
-            
-            if (data.meta) {
-                localStorage.setItem(Storage.KEYS.META, JSON.stringify(data.meta));
-            }
 
-            Storage.updateMeta();
             return { success: true, backup };
         } catch (e) {
-            console.error('Error importing data:', e);
+            console.error('Import failed:', e);
             return { success: false, error: e.message };
         }
     },
@@ -396,97 +304,14 @@ const Storage = {
             localStorage.removeItem(Storage.KEYS.TIMETABLE);
             localStorage.removeItem(Storage.KEYS.HISTORY);
             localStorage.removeItem(Storage.KEYS.SETTINGS);
-            localStorage.removeItem(Storage.KEYS.META);
             Storage.ensureDataStructure();
             return { success: true, backup };
         } catch (e) {
-            console.error('Error clearing data:', e);
+            console.error('Clear failed:', e);
             return { success: false, error: e.message };
         }
-    },
-
-    // Statistics
-    getStatistics: () => {
-        const subjects = Storage.getSubjects();
-        const history = Storage.getHistory();
-        
-        let totalClasses = 0;
-        let attendedClasses = 0;
-        
-        subjects.forEach(subject => {
-            totalClasses += subject.total;
-            attendedClasses += subject.attended;
-        });
-
-        const overallPercentage = totalClasses > 0 
-            ? Math.round((attendedClasses / totalClasses) * 100)
-            : 0;
-
-        // Calculate subject performance
-        const subjectPerformance = subjects.map(subject => {
-            const percentage = Utils.calculatePercentage(subject.attended, subject.total);
-            const riskLevel = Utils.getRiskLevel(percentage, subject.target);
-            const needed = Utils.calculateNeeded(subject.attended, subject.total, subject.target);
-            const safe = Utils.calculateSafeToMiss(subject.attended, subject.total, subject.target);
-            
-            return {
-                ...subject,
-                percentage,
-                riskLevel,
-                needed,
-                safe
-            };
-        });
-
-        // Calculate weekly pattern
-        const weeklyPattern = {
-            sunday: { attended: 0, total: 0 },
-            monday: { attended: 0, total: 0 },
-            tuesday: { attended: 0, total: 0 },
-            wednesday: { attended: 0, total: 0 },
-            thursday: { attended: 0, total: 0 },
-            friday: { attended: 0, total: 0 },
-            saturday: { attended: 0, total: 0 }
-        };
-
-        history.forEach(day => {
-            const date = new Date(day.date);
-            const dayName = Utils.getShortDayName(date).toLowerCase();
-            
-            day.entries.forEach(entry => {
-                if (entry.status === 'attended') {
-                    weeklyPattern[dayName].attended += 1;
-                    weeklyPattern[dayName].total += 1;
-                } else if (entry.status === 'missed') {
-                    weeklyPattern[dayName].total += 1;
-                }
-            });
-        });
-
-        // Find at-risk subjects
-        const atRiskSubjects = subjectPerformance
-            .filter(subject => subject.riskLevel === 'high')
-            .sort((a, b) => a.percentage - b.percentage);
-
-        // Find subjects safe to miss
-        const safeToMiss = subjectPerformance
-            .filter(subject => subject.safe > 0)
-            .sort((a, b) => b.safe - a.safe);
-
-        return {
-            totalClasses,
-            attendedClasses,
-            overallPercentage,
-            subjectPerformance,
-            weeklyPattern,
-            atRiskSubjects,
-            safeToMiss,
-            totalSubjects: subjects.length
-        };
     }
 };
 
-// Initialize storage when loaded
-if (typeof window !== 'undefined') {
-    Storage.init();
-}
+// Initialize storage
+Storage.init();

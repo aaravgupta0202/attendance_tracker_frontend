@@ -2,10 +2,10 @@
 const Utils = {
     // Generate unique ID
     generateId: () => {
-        return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
     },
 
-    // Format date to YYYY-MM-DD
+    // Format date
     formatDate: (date = new Date()) => {
         const d = new Date(date);
         const year = d.getFullYear();
@@ -17,12 +17,6 @@ const Utils = {
     // Get day name
     getDayName: (date = new Date()) => {
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        return days[date.getDay()];
-    },
-
-    // Get short day name
-    getShortDayName: (date = new Date()) => {
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return days[date.getDay()];
     },
 
@@ -43,18 +37,56 @@ const Utils = {
         return Math.round((attended / total) * 100);
     },
 
+    // Get risk level
+    getRiskLevel: (percentage, target = 75) => {
+        if (percentage >= target + 10) return 'low';
+        if (percentage >= target) return 'medium';
+        return 'high';
+    },
+
     // Get color based on percentage
-    getPercentageColor: (percentage, target = 75) => {
+    getProgressColor: (percentage, target = 75) => {
         if (percentage >= target + 10) return 'success';
         if (percentage >= target) return 'warning';
         return 'danger';
     },
 
-    // Get risk level
-    getRiskLevel: (percentage, target = 75) => {
-        if (percentage >= target + 5) return 'low';
-        if (percentage >= target - 5) return 'medium';
-        return 'high';
+    // Show toast notification
+    showToast: (message, type = 'info', duration = 3000) => {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icons = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-circle',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle'
+        };
+
+        toast.innerHTML = `
+            <i class="${icons[type] || icons.info}"></i>
+            <div class="toast-content">
+                <h4>${type.charAt(0).toUpperCase() + type.slice(1)}</h4>
+                <p>${message}</p>
+            </div>
+        `;
+
+        container.appendChild(toast);
+
+        // Remove after duration
+        setTimeout(() => {
+            toast.style.animation = 'slideUp 0.3s ease reverse';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 300);
+        }, duration);
+
+        return toast;
     },
 
     // Debounce function
@@ -70,12 +102,9 @@ const Utils = {
         };
     },
 
-    // Calculate classes needed to reach target
+    // Calculate needed classes
     calculateNeeded: (attended, total, target) => {
         if (target <= 0) return 0;
-        
-        // Formula: (attended + x) / (total + x) >= target/100
-        // Solve for x
         const needed = Math.ceil((target * total - 100 * attended) / (100 - target));
         return Math.max(0, needed);
     },
@@ -83,9 +112,6 @@ const Utils = {
     // Calculate safe to miss
     calculateSafeToMiss: (attended, total, target) => {
         if (target <= 0) return 0;
-        
-        // Formula: attended / (total + x) >= target/100
-        // Solve for x (additional classes that can be missed)
         const safe = Math.floor((100 * attended / target) - total);
         return Math.max(0, safe);
     },
@@ -101,49 +127,15 @@ const Utils = {
         return null;
     },
 
-    // Validate target percentage
-    validateTarget: (target) => {
-        const num = parseInt(target);
-        if (isNaN(num)) {
-            return 'Target must be a number';
-        }
-        if (num < 0 || num > 100) {
-            return 'Target must be between 0 and 100';
-        }
-        return null;
-    },
-
-    // Get month name
-    getMonthName: (month) => {
-        const months = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
+    // Get random color
+    getRandomColor: () => {
+        const colors = [
+            '#1a237e', '#0d145a', '#534bae',
+            '#10b981', '#059669', '#34d399',
+            '#ef4444', '#dc2626', '#f87171',
+            '#f59e0b', '#d97706', '#fbbf24'
         ];
-        return months[month];
-    },
-
-    // Get days in month
-    getDaysInMonth: (year, month) => {
-        return new Date(year, month + 1, 0).getDate();
-    },
-
-    // Get start day of month (0 = Sunday, 6 = Saturday)
-    getStartDayOfMonth: (year, month) => {
-        return new Date(year, month, 1).getDay();
-    },
-
-    // Check if date is today
-    isToday: (date) => {
-        const today = new Date();
-        return date.getDate() === today.getDate() &&
-               date.getMonth() === today.getMonth() &&
-               date.getFullYear() === today.getFullYear();
-    },
-
-    // Check if date is weekend
-    isWeekend: (date) => {
-        const day = date.getDay();
-        return day === 0 || day === 6;
+        return colors[Math.floor(Math.random() * colors.length)];
     },
 
     // Copy to clipboard
@@ -152,61 +144,9 @@ const Utils = {
             await navigator.clipboard.writeText(text);
             return true;
         } catch (err) {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                return true;
-            } catch (err) {
-                document.body.removeChild(textArea);
-                return false;
-            }
+            console.error('Copy failed:', err);
+            return false;
         }
-    },
-
-    // Show toast notification
-    showToast: (message, type = 'info', duration = 3000) => {
-        // Remove existing toast
-        const existingToast = document.querySelector('.toast');
-        if (existingToast) {
-            existingToast.remove();
-        }
-
-        // Create new toast
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        // Show toast
-        setTimeout(() => {
-            toast.classList.add('show');
-        }, 10);
-
-        // Hide after duration
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.remove();
-                }
-            }, 300);
-        }, duration);
-
-        return toast;
-    },
-
-    // Format file size
-    formatFileSize: (bytes) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     },
 
     // Calculate storage usage
@@ -214,19 +154,14 @@ const Utils = {
         let total = 0;
         for (let key in localStorage) {
             if (localStorage.hasOwnProperty(key)) {
-                total += (localStorage[key].length * 2) / 1024; // Convert to KB
+                total += localStorage[key].length * 2;
             }
         }
-        const percentage = (total / (5 * 1024)) * 100; // 5MB limit
+        const percentage = (total / (5 * 1024 * 1024)) * 100; // 5MB limit
         return {
             used: total,
             percentage: Math.min(100, Math.round(percentage)),
-            formatted: `${Math.round(total)} KB / 5 MB`
+            formatted: `${(total / 1024).toFixed(2)} KB / 5 MB`
         };
     }
 };
-
-// Export for use in other files
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Utils;
-}

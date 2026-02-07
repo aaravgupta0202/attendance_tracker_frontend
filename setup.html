@@ -3,152 +3,661 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AttendSwipe • Setup</title>
-    
-    <!-- Styles -->
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/layout.css">
-    <link rel="stylesheet" href="css/components.css">
+    <title>Attendo • Setup</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/glass.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Setup Page Specific */
+        .setup-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: var(--spacing-md) 0;
+        }
+
+        .setup-header {
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .setup-title {
+            font-family: var(--font-accent);
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-sm);
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .setup-subtitle {
+            color: var(--primary-light);
+            font-size: 1.1rem;
+        }
+
+        .setup-stepper {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.2rem;
+            transition: all var(--transition);
+        }
+
+        .step.active .step-number {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .step-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--primary-light);
+        }
+
+        .step.active .step-label {
+            color: var(--primary);
+        }
+
+        .step-line {
+            position: absolute;
+            top: 25px;
+            left: 100%;
+            width: 100px;
+            height: 2px;
+            background: var(--glass-border);
+            z-index: -1;
+        }
+
+        .step:last-child .step-line {
+            display: none;
+        }
+
+        .setup-content {
+            min-height: 500px;
+        }
+
+        .setup-step {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .setup-step.active {
+            display: block;
+        }
+
+        .step-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--glass-border);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .step-header {
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .step-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto var(--spacing-md);
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .step-header h2 {
+            font-family: var(--font-accent);
+            margin-bottom: var(--spacing-sm);
+            color: var(--primary);
+        }
+
+        .step-header p {
+            color: var(--primary-light);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .subject-form {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .subject-input {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            font-family: var(--font-primary);
+            font-size: 1rem;
+            transition: all var(--transition);
+            background: var(--glass-bg);
+        }
+
+        .subject-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
+        }
+
+        .subjects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .subject-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            transition: all var(--transition);
+        }
+
+        .subject-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glass-shadow);
+        }
+
+        .subject-color {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+        }
+
+        .subject-info {
+            flex: 1;
+        }
+
+        .subject-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--primary);
+        }
+
+        .subject-meta {
+            font-size: 0.9rem;
+            color: var(--primary-light);
+        }
+
+        .subject-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-md);
+            border: none;
+            background: var(--glass-bg);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .action-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .empty-subjects {
+            text-align: center;
+            padding: var(--spacing-xl);
+            grid-column: 1 / -1;
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto var(--spacing-md);
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .timetable-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .day-column {
+            background: var(--glass-bg);
+            border: 2px dashed var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-md);
+            min-height: 200px;
+            transition: all var(--transition);
+        }
+
+        .day-column.drag-over {
+            background: rgba(26, 35, 126, 0.05);
+            border-color: var(--primary);
+            border-style: solid;
+        }
+
+        .day-header {
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+            color: var(--primary);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .day-subjects {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+            min-height: 100px;
+        }
+
+        .day-subject {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            text-align: center;
+            cursor: move;
+            position: relative;
+            transition: all var(--transition);
+        }
+
+        .day-subject:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(26, 35, 126, 0.2);
+        }
+
+        .remove-subject {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--danger);
+            color: white;
+            border: none;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+
+        .day-subject:hover .remove-subject {
+            opacity: 1;
+        }
+
+        .empty-day {
+            text-align: center;
+            color: var(--primary-light);
+            font-style: italic;
+            padding: var(--spacing-md);
+            font-size: 0.9rem;
+        }
+
+        .available-subjects {
+            margin-top: var(--spacing-xl);
+        }
+
+        .available-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .available-header i {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .available-header h3 {
+            margin: 0;
+            color: var(--primary);
+        }
+
+        .drag-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+
+        .drag-item {
+            padding: 0.75rem 1rem;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: move;
+            transition: all var(--transition);
+            user-select: none;
+        }
+
+        .drag-item:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .drag-item.dragging {
+            opacity: 0.5;
+            border-style: dashed;
+        }
+
+        .target-slider {
+            width: 100%;
+            margin: var(--spacing-md) 0;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            background: var(--glass-border);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .target-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(26, 35, 126, 0.3);
+        }
+
+        .target-value {
+            display: inline-block;
+            min-width: 50px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .setup-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: var(--spacing-xl);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .btn-back {
+            background: transparent;
+            border: 2px solid var(--glass-border);
+            color: var(--primary);
+        }
+
+        .btn-back:hover {
+            border-color: var(--primary);
+            background: rgba(26, 35, 126, 0.05);
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+        }
+
+        .btn-next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26, 35, 126, 0.3);
+        }
+
+        .btn-done {
+            background: linear-gradient(135deg, var(--accent), #34d399);
+            color: white;
+            border: none;
+        }
+
+        .btn-done:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .timetable-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .subjects-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .setup-stepper {
+                flex-wrap: wrap;
+            }
+            
+            .step-line {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .timetable-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .subject-form {
+                flex-direction: column;
+            }
+            
+            .setup-actions {
+                flex-direction: column;
+                gap: var(--spacing-sm);
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- Decorative Elements -->
+    <div class="deco-circle deco-1"></div>
+    <div class="deco-square deco-3"></div>
+    
     <div class="app-container">
         <!-- Header -->
-        <header class="app-header">
+        <header class="glass-header">
             <div class="header-content">
                 <div class="header-left">
-                    <a href="index.html" class="icon-btn back-btn">
+                    <a href="index.html" class="menu-trigger">
                         <i class="fas fa-arrow-left"></i>
                     </a>
-                    <h1 class="app-title">
-                        <span class="title-icon">⚙️</span>
-                        <span>Setup</span>
-                    </h1>
-                </div>
-                <div class="header-right">
-                    <button class="btn btn-sm btn-success" id="saveBtn">
-                        <i class="fas fa-save"></i> Save
-                    </button>
+                    <div class="app-brand">
+                        <h1>Attendo</h1>
+                        <span class="subtitle">Setup Wizard</span>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="main-content setup-content">
-            <!-- Setup Steps -->
-            <div class="setup-steps">
+        <!-- Setup Container -->
+        <div class="setup-container">
+            <!-- Stepper -->
+            <div class="setup-stepper">
                 <div class="step active" data-step="1">
                     <div class="step-number">1</div>
-                    <span>Subjects</span>
+                    <span class="step-label">Subjects</span>
+                    <div class="step-line"></div>
                 </div>
                 <div class="step" data-step="2">
                     <div class="step-number">2</div>
-                    <span>Timetable</span>
+                    <span class="step-label">Timetable</span>
+                    <div class="step-line"></div>
                 </div>
                 <div class="step" data-step="3">
                     <div class="step-number">3</div>
-                    <span>Targets</span>
+                    <span class="step-label">Targets</span>
                 </div>
             </div>
 
-            <!-- Step 1: Subjects -->
-            <div class="setup-step active" id="step1">
-                <div class="step-header">
-                    <h2><i class="fas fa-book"></i> Add Subjects</h2>
-                    <p>Add all the subjects you want to track attendance for</p>
-                </div>
-                
-                <div class="add-subject-form">
-                    <div class="form-group">
-                        <input type="text" id="subjectName" placeholder="Enter subject name (e.g., Mathematics)" class="form-control">
+            <!-- Setup Content -->
+            <div class="setup-content">
+                <!-- Step 1: Subjects -->
+                <div class="setup-step active" id="step1">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <div class="step-icon">
+                                <i class="fas fa-book"></i>
+                            </div>
+                            <h2>Add Your Subjects</h2>
+                            <p>Enter all the subjects you want to track attendance for. You can edit or delete them later.</p>
+                        </div>
+
+                        <div class="subject-form">
+                            <input type="text" 
+                                   class="subject-input" 
+                                   id="subjectName" 
+                                   placeholder="Enter subject name (e.g., Mathematics)">
+                            <button class="btn btn-primary" id="addSubjectBtn">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+
+                        <div class="subjects-grid" id="subjectsGrid">
+                            <!-- Subjects will be added here -->
+                        </div>
+
+                        <div class="setup-actions">
+                            <div></div> <!-- Empty div for spacing -->
+                            <button class="btn btn-next" data-next="2">
+                                Next: Timetable <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
                     </div>
-                    <button class="btn btn-primary" id="addSubjectBtn">
-                        <i class="fas fa-plus"></i> Add Subject
-                    </button>
                 </div>
 
-                <div class="subjects-list" id="subjectsList">
-                    <!-- Subjects will be added here -->
+                <!-- Step 2: Timetable -->
+                <div class="setup-step" id="step2">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <div class="step-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <h2>Create Weekly Timetable</h2>
+                            <p>Drag subjects from the list below to the days when you have classes.</p>
+                        </div>
+
+                        <div class="timetable-grid" id="timetableGrid">
+                            <!-- Days will be generated here -->
+                        </div>
+
+                        <div class="available-subjects">
+                            <div class="available-header">
+                                <i class="fas fa-grip-vertical"></i>
+                                <h3>Drag Subjects Here</h3>
+                            </div>
+                            <div class="drag-items" id="dragItems">
+                                <!-- Drag items will be added here -->
+                            </div>
+                        </div>
+
+                        <div class="setup-actions">
+                            <button class="btn btn-back" data-prev="1">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button class="btn btn-next" data-next="3">
+                                Next: Targets <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="step-footer">
-                    <button class="btn btn-primary btn-next" data-next="2">
-                        Next: Timetable <i class="fas fa-arrow-right"></i>
-                    </button>
+                <!-- Step 3: Targets -->
+                <div class="setup-step" id="step3">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <div class="step-icon">
+                                <i class="fas fa-bullseye"></i>
+                            </div>
+                            <h2>Set Attendance Targets</h2>
+                            <p>Set minimum attendance percentage for each subject. Aim high, but be realistic!</p>
+                        </div>
+
+                        <div class="targets-list" id="targetsList">
+                            <!-- Targets will be added here -->
+                        </div>
+
+                        <div class="setup-complete hidden" id="setupComplete">
+                            <div class="step-header">
+                                <div class="step-icon" style="background: linear-gradient(135deg, var(--accent), #34d399);">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <h2>Setup Complete! 🎉</h2>
+                                <p>Your attendance tracker is ready to use. Start tracking your classes today!</p>
+                                <a href="index.html" class="btn btn-done btn-lg">
+                                    <i class="fas fa-rocket"></i> Launch Dashboard
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="setup-actions">
+                            <button class="btn btn-back" data-prev="2">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button class="btn btn-done" id="saveSetupBtn">
+                                <i class="fas fa-save"></i> Save & Finish
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <!-- Step 2: Timetable -->
-            <div class="setup-step" id="step2">
-                <div class="step-header">
-                    <h2><i class="fas fa-calendar-alt"></i> Weekly Timetable</h2>
-                    <p>Assign subjects to days of the week</p>
-                </div>
-
-                <div class="timetable-container">
-                    <div class="timetable-grid">
-                        <!-- Days will be generated by JavaScript -->
-                    </div>
-                </div>
-
-                <div class="drag-help">
-                    <i class="fas fa-info-circle"></i>
-                    Drag subjects from the list below onto days
-                </div>
-
-                <div class="available-subjects">
-                    <h4>Available Subjects</h4>
-                    <div class="subjects-drag-list" id="subjectsDragList">
-                        <!-- Draggable subjects will be added here -->
-                    </div>
-                </div>
-
-                <div class="step-footer">
-                    <button class="btn btn-outline btn-prev" data-prev="1">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </button>
-                    <button class="btn btn-primary btn-next" data-next="3">
-                        Next: Targets <i class="fas fa-arrow-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Step 3: Targets -->
-            <div class="setup-step" id="step3">
-                <div class="step-header">
-                    <h2><i class="fas fa-bullseye"></i> Set Targets</h2>
-                    <p>Set minimum attendance percentage for each subject</p>
-                </div>
-
-                <div class="targets-list" id="targetsList">
-                    <!-- Targets will be added here -->
-                </div>
-
-                <div class="setup-complete">
-                    <div class="complete-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <h3>Setup Complete!</h3>
-                    <p>You're ready to start tracking your attendance.</p>
-                    <a href="index.html" class="btn btn-success btn-lg">
-                        <i class="fas fa-rocket"></i> Launch Dashboard
-                    </a>
-                </div>
-
-                <div class="step-footer">
-                    <button class="btn btn-outline btn-prev" data-prev="2">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </button>
-                </div>
-            </div>
-        </main>
-
-        <!-- Toast -->
-        <div class="toast" id="toast"></div>
+        </div>
     </div>
 
-    <!-- JavaScript -->
+    <!-- Toast -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <script src="js/utils.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/setup.js"></script>

@@ -1,168 +1,148 @@
 // Dashboard Logic
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Dashboard loaded');
+    
     // DOM Elements
-    const classesContainer = document.getElementById('classesContainer');
-    const classesList = document.getElementById('classesList');
-    const emptyState = document.getElementById('emptyState');
     const setupPrompt = document.getElementById('setupPrompt');
-    const classCount = document.getElementById('classCount');
+    const todayStats = document.getElementById('todayStats');
+    const classesSection = document.getElementById('classesSection');
+    const classesContainer = document.getElementById('classesContainer');
+    const emptyState = document.getElementById('emptyState');
+    const todayClasses = document.getElementById('todayClasses');
+    const attendedToday = document.getElementById('attendedToday');
+    const missedToday = document.getElementById('missedToday');
+    const currentDay = document.getElementById('currentDay');
     const currentDate = document.getElementById('currentDate');
-    const dayBadge = document.getElementById('dayBadge');
     const undoBtn = document.getElementById('undoBtn');
     const markAllBtn = document.getElementById('markAllBtn');
     const todayBtn = document.getElementById('todayBtn');
+    const menuTrigger = document.getElementById('menuTrigger');
+    const closeMenu = document.getElementById('closeMenu');
+    const sideMenu = document.getElementById('sideMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
     
-    // Swipe tracking
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchEndX = 0;
-    let touchEndY = 0;
-    let isSwiping = false;
-    let currentCard = null;
+    // State
     let undoStack = [];
+    let isDragging = false;
+    let startX = 0;
+    let currentX = 0;
+    let currentCard = null;
 
     // Initialize
     init();
 
-    // Add to init() function start:
-function init() {
-  // Clear any setup listeners if somehow loaded
-  if (!window.location.pathname.includes('setup.html')) {
-    document.querySelectorAll('.subjects-drag-list, .subject-drag-item').forEach(el => el.remove());
-  }
-  updateDateDisplay();
-  checkSetupStatus();
-  loadTodayClasses();
-  setupEventListeners();
-  setupMenu();
-}
-
+    function init() {
+        updateDateDisplay();
+        checkSetupStatus();
+        loadTodayClasses();
+        setupEventListeners();
+        setupMenu();
+        updateStorageDisplay();
+    }
 
     function updateDateDisplay() {
         const today = new Date();
-        currentDate.textContent = Utils.formatDisplayDate(today);
-        dayBadge.textContent = Utils.getDayName(today);
+        currentDay.textContent = Utils.getDayName(today);
+        currentDate.textContent = today.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
     }
 
     function checkSetupStatus() {
         const subjects = Storage.getSubjects();
         const timetable = Storage.getTimetable();
-        
         const hasSubjects = subjects.length > 0;
         const hasTimetable = Object.values(timetable).some(day => day.length > 0);
         
         if (!hasSubjects || !hasTimetable) {
-            setupPrompt.style.display = 'block';
-            classesContainer.style.display = 'none';
-            emptyState.style.display = 'none';
+            setupPrompt.classList.remove('hidden');
+            todayStats.classList.add('hidden');
+            classesSection.classList.add('hidden');
         } else {
-            setupPrompt.style.display = 'none';
+            setupPrompt.classList.add('hidden');
+            todayStats.classList.remove('hidden');
+            classesSection.classList.remove('hidden');
         }
     }
 
     function loadTodayClasses() {
         const today = new Date();
         const dayName = Utils.getDayName(today).toLowerCase();
-        console.log('Today is:', dayName);
-        
         const subjectIds = Storage.getSubjectsForDay(dayName);
-        console.log('Subject IDs for today:', subjectIds);
-        
         const subjects = Storage.getSubjects();
-        console.log('All subjects from storage:', subjects);
-        
         const todayHistory = Storage.getHistoryForDate(Utils.formatDate(today));
         
-        // Filter subjects for today
+        // Filter today's subjects
         const todaySubjects = subjects.filter(subject => 
             subjectIds.includes(subject.id)
         );
-        
-        console.log('Filtered today subjects:', todaySubjects);
 
-        // Update count
-        classCount.textContent = todaySubjects.length;
-        
+        // Update stats
+        todayClasses.textContent = todaySubjects.length;
+        const attendedCount = todayHistory.entries.filter(e => e.status === 'attended').length;
+        const missedCount = todayHistory.entries.filter(e => e.status === 'missed').length;
+        attendedToday.textContent = attendedCount;
+        missedToday.textContent = missedCount;
+
         // Show/hide containers
         if (todaySubjects.length === 0) {
-            classesContainer.style.display = 'none';
-            emptyState.style.display = 'block';
-            emptyState.innerHTML = `
-                <div class="empty-icon">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
-                <h3>No classes scheduled for today</h3>
-                <p>Check your timetable in Setup page</p>
-                <a href="setup.html" class="btn btn-primary">
-                    <i class="fas fa-cog"></i> Go to Setup
-                </a>
-            `;
+            classesContainer.innerHTML = '';
+            emptyState.classList.remove('hidden');
             return;
         } else {
-            classesContainer.style.display = 'block';
-            emptyState.style.display = 'none';
+            emptyState.classList.add('hidden');
         }
 
-        // Clear current list
-        classesList.innerHTML = '';
-
-        // Create cards for each subject
+        // Clear and render classes
+        classesContainer.innerHTML = '';
         todaySubjects.forEach((subject, index) => {
             const card = createClassCard(subject, todayHistory);
-            classesList.appendChild(card);
+            classesContainer.appendChild(card);
             
-            // Add swipe listeners
-            addSwipeListeners(card, subject.id);
-            
-            // Animate card appearance
+            // Add swipe listeners with delay for animation
             setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, index * 100);
+                addSwipeListeners(card, subject.id);
+            }, index * 50);
         });
 
-        // Update undo button state
         updateUndoButton();
     }
 
     function createClassCard(subject, todayHistory) {
         const percentage = Utils.calculatePercentage(subject.attended, subject.total);
         const riskLevel = Utils.getRiskLevel(percentage, subject.target);
-        const status = todayHistory.entries.find(entry => entry.subjectId === subject.id)?.status || 'pending';
+        const progressColor = Utils.getProgressColor(percentage, subject.target);
+        const status = todayHistory.entries.find(e => e.subjectId === subject.id)?.status || 'pending';
         
         const card = document.createElement('div');
-        card.className = `class-card ${riskLevel}-risk`;
+        card.className = `class-card glass-card ${riskLevel}`;
         card.dataset.subjectId = subject.id;
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        card.style.transition = 'opacity 0.3s, transform 0.3s';
         
         card.innerHTML = `
             <div class="card-header">
                 <h3 class="subject-name">${subject.name}</h3>
                 <span class="subject-time">${getRandomTime()}</span>
             </div>
-            
-            <div class="card-body">
+            <div class="card-content">
+                <div class="attendance-percentage">${percentage}%</div>
                 <div class="attendance-info">
-                    <div class="attendance-percentage">${percentage}%</div>
-                    <div class="target-info">
-                        <div class="target-percentage">Target: ${subject.target}%</div>
-                        <div class="classes-count">
-                            <span>${subject.attended}/${subject.total} classes</span>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill ${progressColor}" style="width: ${Math.min(percentage, 100)}%"></div>
+                        </div>
+                        <div class="progress-info">
+                            <span>${subject.attended}/${subject.total}</span>
+                            <span>Target: ${subject.target}%</span>
                         </div>
                     </div>
                 </div>
-                
-                <div class="progress-bar">
-                    <div class="progress-fill ${Utils.getPercentageColor(percentage, subject.target)}" 
-                         style="width: ${percentage}%"></div>
-                </div>
             </div>
-            
             <div class="card-footer">
-                <div class="status-badge status-${status}">
-                    ${getStatusText(status)}
+                <div class="status-indicator">
+                    <div class="status-dot ${status}"></div>
+                    <span>${getStatusText(status)}</span>
                 </div>
                 <div class="swipe-hint">
                     <i class="fas fa-arrow-right"></i>
@@ -179,145 +159,109 @@ function init() {
         let startX = 0;
         let currentX = 0;
         let transform = 0;
-        
-        card.addEventListener('touchstart', handleTouchStart, { passive: true });
-        card.addEventListener('touchmove', handleTouchMove, { passive: false });
-        card.addEventListener('touchend', handleTouchEnd);
-        
-        card.addEventListener('mousedown', handleMouseDown);
-        
-        // Prevent text selection while dragging
-        card.addEventListener('selectstart', (e) => {
-            if (isDragging) e.preventDefault();
-        });
+        let velocity = 0;
+        let lastX = 0;
+        let lastTime = 0;
 
-        function handleTouchStart(e) {
-            const touch = e.touches[0];
-            startX = touch.clientX;
-            currentX = startX;
+        // Mouse events
+        card.addEventListener('mousedown', handleStart);
+        card.addEventListener('touchstart', handleStart, { passive: false });
+
+        function handleStart(e) {
+            if (e.type === 'touchstart') e.preventDefault();
+            
             isDragging = true;
+            startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            currentX = startX;
+            lastX = startX;
+            lastTime = Date.now();
+            
             card.style.transition = 'none';
-            e.preventDefault();
+            card.style.cursor = 'grabbing';
+            
+            if (e.type === 'mousedown') {
+                document.addEventListener('mousemove', handleMove);
+                document.addEventListener('mouseup', handleEnd);
+            } else {
+                document.addEventListener('touchmove', handleMove, { passive: false });
+                document.addEventListener('touchend', handleEnd);
+            }
         }
 
-        function handleTouchMove(e) {
+        function handleMove(e) {
             if (!isDragging) return;
+            if (e.type === 'touchmove') e.preventDefault();
             
-            const touch = e.touches[0];
-            currentX = touch.clientX;
+            currentX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
             transform = currentX - startX;
             
-            // Apply transform with resistance
-            const resistance = 0.5;
-            const limitedTransform = transform * resistance;
-            
-            card.style.transform = `translateX(${limitedTransform}px) rotate(${limitedTransform * 0.1}deg)`;
-            
-            // Change color based on direction
-            if (transform > 50) {
-                card.style.backgroundColor = '#d1fae5'; // Green for right
-            } else if (transform < -50) {
-                card.style.backgroundColor = '#fee2e2'; // Red for left
-            } else {
-                card.style.backgroundColor = '';
+            // Calculate velocity
+            const now = Date.now();
+            const deltaTime = now - lastTime;
+            if (deltaTime > 0) {
+                velocity = (currentX - lastX) / deltaTime;
+                lastX = currentX;
+                lastTime = now;
             }
             
-            e.preventDefault();
+            // Apply transform with resistance
+            const resistance = 0.3;
+            const limitedTransform = transform * resistance;
+            
+            card.style.transform = `translateX(${limitedTransform}px) rotate(${limitedTransform * 0.05}deg)`;
+            
+            // Visual feedback
+            if (transform > 50) {
+                card.classList.add('swiping-right');
+                card.classList.remove('swiping-left');
+            } else if (transform < -50) {
+                card.classList.add('swiping-left');
+                card.classList.remove('swiping-right');
+            } else {
+                card.classList.remove('swiping-right', 'swiping-left');
+            }
         }
 
-        function handleTouchEnd() {
+        function handleEnd() {
             if (!isDragging) return;
-            
             isDragging = false;
-            card.style.transition = 'transform 0.3s, opacity 0.3s';
+            
+            card.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+            card.style.cursor = 'grab';
+            
+            // Remove event listeners
+            document.removeEventListener('mousemove', handleMove);
+            document.removeEventListener('mouseup', handleEnd);
+            document.removeEventListener('touchmove', handleMove);
+            document.removeEventListener('touchend', handleEnd);
             
             const threshold = 100;
-            const velocity = Math.abs(transform);
+            const absTransform = Math.abs(transform);
+            const absVelocity = Math.abs(velocity * 100); // Scale velocity
             
-            if (velocity > threshold) {
-                // Swipe was intentional
+            // Check if swipe should trigger
+            if (absTransform > threshold || (absTransform > 30 && absVelocity > 5)) {
                 if (transform > 0) {
                     // Swipe right - attended
                     markAttendance(subjectId, 'attended');
-                    card.classList.add('swipe-right');
+                    card.style.transform = 'translateX(100vw) rotate(30deg)';
+                    card.style.opacity = '0';
                 } else {
                     // Swipe left - missed
                     markAttendance(subjectId, 'missed');
-                    card.classList.add('swipe-left');
+                    card.style.transform = 'translateX(-100vw) rotate(-30deg)';
+                    card.style.opacity = '0';
                 }
                 
                 // Remove card after animation
                 setTimeout(() => {
                     card.remove();
-                    loadTodayClasses(); // Reload to update counts
+                    loadTodayClasses(); // Reload to update
                 }, 300);
             } else {
                 // Return to original position
                 card.style.transform = '';
-                card.style.backgroundColor = '';
-            }
-        }
-
-        function handleMouseDown(e) {
-            if (e.button !== 0) return; // Only left click
-            
-            startX = e.clientX;
-            currentX = startX;
-            isDragging = true;
-            card.style.transition = 'none';
-            
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-        }
-
-        function handleMouseMove(e) {
-            if (!isDragging) return;
-            
-            currentX = e.clientX;
-            transform = currentX - startX;
-            
-            const resistance = 0.5;
-            const limitedTransform = transform * resistance;
-            
-            card.style.transform = `translateX(${limitedTransform}px) rotate(${limitedTransform * 0.1}deg)`;
-            
-            if (transform > 50) {
-                card.style.backgroundColor = '#d1fae5';
-            } else if (transform < -50) {
-                card.style.backgroundColor = '#fee2e2';
-            } else {
-                card.style.backgroundColor = '';
-            }
-        }
-
-        function handleMouseUp() {
-            if (!isDragging) return;
-            
-            isDragging = false;
-            card.style.transition = 'transform 0.3s, opacity 0.3s';
-            
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-            
-            const threshold = 100;
-            const velocity = Math.abs(transform);
-            
-            if (velocity > threshold) {
-                if (transform > 0) {
-                    markAttendance(subjectId, 'attended');
-                    card.classList.add('swipe-right');
-                } else {
-                    markAttendance(subjectId, 'missed');
-                    card.classList.add('swipe-left');
-                }
-                
-                setTimeout(() => {
-                    card.remove();
-                    loadTodayClasses();
-                }, 300);
-            } else {
-                card.style.transform = '';
-                card.style.backgroundColor = '';
+                card.classList.remove('swiping-right', 'swiping-left');
             }
         }
 
@@ -328,15 +272,14 @@ function init() {
             
             clearTimeout(tapTimer);
             tapTimer = setTimeout(() => {
-                // Check if this was a tap (not part of a swipe)
-                if (!isDragging && Math.abs(transform) < 10) {
+                if (!isDragging && Math.abs(transform) < 5) {
                     markAttendance(subjectId, 'cancelled');
-                    card.classList.add('swipe-tap');
+                    card.classList.add('shake');
+                    updateCardStatus(card, 'cancelled');
                     
                     setTimeout(() => {
-                        card.classList.remove('swipe-tap');
-                        updateCardStatus(card, 'cancelled');
-                    }, 300);
+                        card.classList.remove('shake');
+                    }, 500);
                 }
             }, 200);
         });
@@ -360,10 +303,12 @@ function init() {
             const messages = {
                 attended: 'Marked as attended ✓',
                 missed: 'Marked as missed ✗',
-                cancelled: 'Marked as cancelled ∅'
+                cancelled: 'Marked as cancelled'
             };
             
-            Utils.showToast(messages[status], 'success');
+            Utils.showToast(messages[status], 
+                status === 'attended' ? 'success' : 
+                status === 'missed' ? 'error' : 'info');
         }
     }
 
@@ -375,7 +320,6 @@ function init() {
             undoStack.pop();
             updateUndoButton();
             loadTodayClasses();
-            
             Utils.showToast('Undo successful!', 'success');
         }
     }
@@ -393,9 +337,11 @@ function init() {
     }
 
     function updateCardStatus(card, status) {
-        const badge = card.querySelector('.status-badge');
-        badge.className = `status-badge status-${status}`;
-        badge.textContent = getStatusText(status);
+        const statusDot = card.querySelector('.status-dot');
+        const statusText = card.querySelector('.status-indicator span');
+        
+        statusDot.className = `status-dot ${status}`;
+        statusText.textContent = getStatusText(status);
     }
 
     function updateUndoButton() {
@@ -404,10 +350,10 @@ function init() {
 
     function getStatusText(status) {
         const texts = {
-            attended: 'Attended ✓',
-            missed: 'Missed ✗',
-            cancelled: 'Cancelled ∅',
-            pending: 'Pending...'
+            attended: 'Attended',
+            missed: 'Missed',
+            cancelled: 'Cancelled',
+            pending: 'Pending'
         };
         return texts[status] || status;
     }
@@ -425,32 +371,23 @@ function init() {
         undoBtn.addEventListener('click', undoLastAction);
         
         // Mark all button
-        markAllBtn.addEventListener('click', markAllPresent);
+        if (markAllBtn) {
+            markAllBtn.addEventListener('click', markAllPresent);
+        }
         
         // Today button
-        todayBtn.addEventListener('click', () => {
-            loadTodayClasses();
-            updateDateDisplay();
-            Utils.showToast('Refreshed!', 'success');
-        });
-        
-        // View week button
-        const viewWeekBtn = document.getElementById('viewWeekBtn');
-        if (viewWeekBtn) {
-            viewWeekBtn.addEventListener('click', () => {
-                window.location.href = 'stats.html';
+        if (todayBtn) {
+            todayBtn.addEventListener('click', () => {
+                loadTodayClasses();
+                updateDateDisplay();
+                Utils.showToast('Refreshed!', 'info');
             });
         }
     }
 
     function setupMenu() {
-        const menuBtn = document.getElementById('menuBtn');
-        const closeMenu = document.getElementById('closeMenu');
-        const sideMenu = document.getElementById('sideMenu');
-        const menuOverlay = document.getElementById('menuOverlay');
-        
-        if (menuBtn) {
-            menuBtn.addEventListener('click', () => {
+        if (menuTrigger) {
+            menuTrigger.addEventListener('click', () => {
                 sideMenu.classList.add('active');
                 menuOverlay.classList.add('active');
             });
@@ -470,32 +407,21 @@ function init() {
             });
         }
         
-        // Update storage usage
-        updateStorageUsage();
-        
-        // Setup menu actions
+        // Menu actions
         setupMenuActions();
-    }
-
-    function updateStorageUsage() {
-        const storageInfo = Utils.calculateStorageUsage();
-        const storageUsage = document.getElementById('storageUsage');
-        if (storageUsage) {
-            storageUsage.textContent = `${storageInfo.percentage}% used`;
-        }
     }
 
     function setupMenuActions() {
         // Export data
-        const exportData = document.getElementById('exportData');
-        if (exportData) {
-            exportData.addEventListener('click', () => {
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
                 const data = Storage.exportData();
                 const blob = new Blob([data], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `attendance-backup-${Utils.formatDate()}.json`;
+                a.download = `attendo-backup-${Utils.formatDate()}.json`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -506,9 +432,9 @@ function init() {
         }
         
         // Import data
-        const importData = document.getElementById('importData');
-        if (importData) {
-            importData.addEventListener('click', () => {
+        const importBtn = document.getElementById('importBtn');
+        if (importBtn) {
+            importBtn.addEventListener('click', () => {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = '.json';
@@ -522,9 +448,7 @@ function init() {
                             const result = Storage.importData(event.target.result);
                             if (result.success) {
                                 Utils.showToast('Data imported successfully!', 'success');
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1000);
+                                setTimeout(() => location.reload(), 1000);
                             } else {
                                 Utils.showToast('Import failed: ' + result.error, 'error');
                             }
@@ -539,19 +463,30 @@ function init() {
         }
         
         // Reset data
-        const resetData = document.getElementById('resetData');
-        if (resetData) {
-            resetData.addEventListener('click', () => {
-                if (confirm('Are you sure you want to reset all data? This cannot be undone!')) {
+        const resetBtn = document.getElementById('resetBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (confirm('Are you sure? This will delete all your data.')) {
                     const result = Storage.clearAllData();
                     if (result.success) {
-                        Utils.showToast('All data has been reset', 'success');
-                        setTimeout(() => {
-                            window.location.href = 'setup.html';
-                        }, 1000);
+                        Utils.showToast('All data cleared', 'info');
+                        setTimeout(() => location.reload(), 1000);
                     }
                 }
             });
+        }
+    }
+
+    function updateStorageDisplay() {
+        const storageInfo = Utils.calculateStorageUsage();
+        const storageFill = document.getElementById('storageFill');
+        const storageText = document.getElementById('storageText');
+        
+        if (storageFill) {
+            storageFill.style.width = `${storageInfo.percentage}%`;
+        }
+        if (storageText) {
+            storageText.textContent = `Storage: ${storageInfo.percentage}%`;
         }
     }
 });

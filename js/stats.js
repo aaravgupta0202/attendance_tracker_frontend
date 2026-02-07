@@ -1,83 +1,154 @@
-// Statistics Page Logic
+// Statistics Logic
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Stats page loaded');
+    
     // DOM Elements
     const totalClasses = document.getElementById('totalClasses');
     const attendedClasses = document.getElementById('attendedClasses');
     const overallPercentage = document.getElementById('overallPercentage');
-    const subjectStats = document.getElementById('subjectStats');
+    const performanceList = document.getElementById('performanceList');
     const riskSubjects = document.getElementById('riskSubjects');
     const safeToMiss = document.getElementById('safeToMiss');
-    const sortBy = document.getElementById('sortBy');
+    const currentMonth = document.getElementById('currentMonth');
+    const calendar = document.getElementById('calendar');
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const todayMonthBtn = document.getElementById('todayMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
     const exportStatsBtn = document.getElementById('exportStatsBtn');
-    const backupBtn = document.getElementById('backupBtn');
-    const restoreBtn = document.getElementById('restoreBtn');
+    const exportDataBtn = document.getElementById('exportDataBtn');
+    const importDataBtn = document.getElementById('importDataBtn');
     const clearDataBtn = document.getElementById('clearDataBtn');
+    const emptyStats = document.getElementById('emptyStats');
     
     // Charts
     let attendanceChart = null;
     let weeklyChart = null;
     
     // Calendar state
-    let currentMonth = new Date().getMonth();
-    let currentYear = new Date().getFullYear();
-    
+    let currentDate = new Date();
+    let currentYear = currentDate.getFullYear();
+    let currentMonthIndex = currentDate.getMonth();
+
     // Initialize
     init();
 
     function init() {
-        loadStatistics();
-        renderCharts();
+        const stats = calculateStatistics();
+        
+        if (stats.totalSubjects === 0) {
+            emptyStats.classList.remove('hidden');
+            return;
+        } else {
+            emptyStats.classList.add('hidden');
+        }
+        
+        updateOverview(stats);
+        renderSubjectPerformance(stats);
+        renderCharts(stats);
+        renderInsights(stats);
         renderCalendar();
         setupEventListeners();
     }
 
-    function loadStatistics() {
-        const stats = Storage.getStatistics();
+    function calculateStatistics() {
+        const subjects = Storage.getSubjects();
+        const history = Storage.getHistory();
+        const timetable = Storage.getTimetable();
         
-        // Update overview cards
+        // Overall statistics
+        let totalClassesCount = 0;
+        let attendedClassesCount = 0;
+        
+        subjects.forEach(subject => {
+            totalClassesCount += subject.total || 0;
+            attendedClassesCount += subject.attended || 0;
+        });
+        
+        const overallPercentage = totalClassesCount > 0 
+            ? Math.round((attendedClassesCount / totalClassesCount) * 100)
+            : 0;
+
+        // Subject performance
+        const subjectPerformance = subjects.map(subject => {
+            const percentage = Utils.calculatePercentage(subject.attended, subject.total);
+            const riskLevel = Utils.getRiskLevel(percentage, subject.target);
+            const needed = Utils.calculateNeeded(subject.attended, subject.total, subject.target);
+            const safe = Utils.calculateSafeToMiss(subject.attended, subject.total, subject.target);
+            
+            return {
+                ...subject,
+                percentage,
+                riskLevel,
+                needed,
+                safe,
+                status: percentage >= subject.target ? 'on-track' : 'at-risk'
+            };
+        }).sort((a, b) => b.percentage - a.percentage);
+
+        // Weekly pattern
+        const weeklyPattern = {
+            monday: { attended: 0, total: 0 },
+            tuesday: { attended: 0, total: 0 },
+            wednesday: { attended: 0, total: 0 },
+            thursday: { attended: 0, total: 0 },
+            friday: { attended: 0, total: 0 },
+            saturday: { attended: 0, total: 0 },
+            sunday: { attended: 0, total: 0 }
+        };
+
+        history.forEach(day => {
+            const date = new Date(day.date);
+            const dayName = Utils.getDayName(date).toLowerCase();
+            
+            day.entries.forEach(entry => {
+                if (entry.status === 'attended') {
+                    weeklyPattern[dayName].attended += 1;
+                    weeklyPattern[dayName].total += 1;
+                } else if (entry.status === 'missed') {
+                    weeklyPattern[dayName].total += 1;
+                }
+            });
+        });
+
+        // At-risk subjects
+        const atRiskSubjects = subjectPerformance
+            .filter(subject => subject.riskLevel === 'high')
+            .sort((a, b) => a.percentage - b.percentage);
+
+        // Safe to miss
+        const safeToMissSubjects = subjectPerformance
+            .filter(subject => subject.safe > 0)
+            .sort((a, b) => b.safe - a.safe);
+
+        return {
+            totalClasses: totalClassesCount,
+            attendedClasses: attendedClassesCount,
+            overallPercentage,
+            subjectPerformance,
+            weeklyPattern,
+            atRiskSubjects,
+            safeToMissSubjects,
+            totalSubjects: subjects.length
+        };
+    }
+
+    function updateOverview(stats) {
         totalClasses.textContent = stats.totalClasses;
         attendedClasses.textContent = stats.attendedClasses;
         overallPercentage.textContent = `${stats.overallPercentage}%`;
-        
-        // Update subject performance
-        renderSubjectStats(stats.subjectPerformance);
-        
-        // Update insights
-        renderInsights(stats);
-        
-        // Update month display
-        updateMonthDisplay();
     }
 
-    function renderSubjectStats(subjects) {
-        // Sort subjects based on selected option
-        const sortValue = sortBy ? sortBy.value : 'name';
-        let sortedSubjects = [...subjects];
+    function renderSubjectPerformance(stats) {
+        performanceList.innerHTML = '';
         
-        switch(sortValue) {
-            case 'name':
-                sortedSubjects.sort((a, b) => a.name.localeCompare(b.name));
-                break;
-            case 'percentage':
-                sortedSubjects.sort((a, b) => b.percentage - a.percentage);
-                break;
-            case 'risk':
-                const riskOrder = { high: 0, medium: 1, low: 2 };
-                sortedSubjects.sort((a, b) => riskOrder[a.riskLevel] - riskOrder[b.riskLevel]);
-                break;
-        }
-        
-        // Clear current list
-        subjectStats.innerHTML = '';
-        
-        if (sortedSubjects.length === 0) {
-            subjectStats.innerHTML = `
-                <div class="empty-state">
+        if (stats.subjectPerformance.length === 0) {
+            performanceList.innerHTML = `
+                <div class="empty-stats">
                     <div class="empty-icon">
                         <i class="fas fa-book"></i>
                     </div>
-                    <h3>No subjects found</h3>
-                    <p>Add subjects in the setup page to see statistics</p>
+                    <h3>No Subjects Found</h3>
+                    <p>Add subjects in the setup page</p>
                     <a href="setup.html" class="btn btn-primary">
                         <i class="fas fa-cog"></i> Go to Setup
                     </a>
@@ -85,105 +156,55 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             return;
         }
-        
-        // Create subject cards
-        sortedSubjects.forEach(subject => {
+
+        stats.subjectPerformance.forEach(subject => {
             const card = document.createElement('div');
-            card.className = 'subject-stat-card';
+            card.className = 'subject-perf-card';
+            
+            // Progress bar width
+            const progressWidth = Math.min(subject.percentage, 100);
             
             card.innerHTML = `
-                <div class="card-header">
-                    <h4>${subject.name}</h4>
-                    <div class="risk-indicator ${subject.riskLevel}-risk"></div>
-                    <span class="badge badge-${subject.riskLevel}">
-                        ${subject.riskLevel.toUpperCase()} RISK
-                    </span>
+                <div class="perf-header">
+                    <div class="subject-name">${subject.name}</div>
+                    <div class="risk-badge risk-${subject.riskLevel}">
+                        ${subject.riskLevel.toUpperCase()}
+                    </div>
                 </div>
-                
-                <div class="stat-progress">
+                <div class="perf-stats">
+                    <div class="stat-box">
+                        <div class="stat-value">${subject.percentage}%</div>
+                        <div class="stat-label">Current</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${subject.target}%</div>
+                        <div class="stat-label">Target</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${subject.needed}</div>
+                        <div class="stat-label">Needed</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${subject.safe}</div>
+                        <div class="stat-label">Safe to Miss</div>
+                    </div>
+                </div>
+                <div class="perf-progress">
+                    <div class="progress-info">
+                        <span>${subject.attended}/${subject.total} classes</span>
+                        <span>${subject.percentage}%</span>
+                    </div>
                     <div class="progress-bar">
-                        <div class="progress-fill ${Utils.getPercentageColor(subject.percentage, subject.target)}" 
-                             style="width: ${Math.min(100, subject.percentage)}%"></div>
+                        <div class="progress-fill ${subject.riskLevel}" style="width: ${progressWidth}%"></div>
                     </div>
-                    <div class="progress-label">
-                        ${subject.percentage}% (${subject.attended}/${subject.total})
-                    </div>
-                </div>
-                
-                <div class="stat-row">
-                    <span class="label">Target:</span>
-                    <span class="value">${subject.target}%</span>
-                </div>
-                
-                <div class="stat-row">
-                    <span class="label">Status:</span>
-                    <span class="value ${subject.percentage >= subject.target ? 'text-success' : 'text-danger'}">
-                        ${subject.percentage >= subject.target ? '✓ On track' : '✗ Below target'}
-                    </span>
-                </div>
-                
-                <div class="stat-row">
-                    <span class="label">Needed to reach target:</span>
-                    <span class="value">${subject.needed} more classes</span>
-                </div>
-                
-                <div class="stat-row">
-                    <span class="label">Safe to miss:</span>
-                    <span class="value">${subject.safe} classes</span>
                 </div>
             `;
             
-            subjectStats.appendChild(card);
+            performanceList.appendChild(card);
         });
     }
 
-    function renderInsights(stats) {
-        // At risk subjects
-        riskSubjects.innerHTML = '';
-        if (stats.atRiskSubjects.length === 0) {
-            riskSubjects.innerHTML = `
-                <div class="insight-item">
-                    <span>No subjects at risk!</span>
-                    <span class="text-success">✓</span>
-                </div>
-            `;
-        } else {
-            stats.atRiskSubjects.forEach(subject => {
-                const item = document.createElement('div');
-                item.className = 'insight-item';
-                item.innerHTML = `
-                    <span>${subject.name}</span>
-                    <span class="text-danger">${subject.percentage}%</span>
-                `;
-                riskSubjects.appendChild(item);
-            });
-        }
-        
-        // Safe to miss
-        safeToMiss.innerHTML = '';
-        if (stats.safeToMiss.length === 0) {
-            safeToMiss.innerHTML = `
-                <div class="insight-item">
-                    <span>No buffer available</span>
-                    <span class="text-warning">⚠</span>
-                </div>
-            `;
-        } else {
-            stats.safeToMiss.forEach(subject => {
-                const item = document.createElement('div');
-                item.className = 'insight-item';
-                item.innerHTML = `
-                    <span>${subject.name}</span>
-                    <span class="text-success">${subject.safe} classes</span>
-                `;
-                safeToMiss.appendChild(item);
-            });
-        }
-    }
-
-    function renderCharts() {
-        const stats = Storage.getStatistics();
-        
+    function renderCharts(stats) {
         // Destroy existing charts
         if (attendanceChart) attendanceChart.destroy();
         if (weeklyChart) weeklyChart.destroy();
@@ -201,17 +222,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         data: subjects.map(s => s.percentage),
                         backgroundColor: subjects.map(s => s.color),
                         borderWidth: 2,
-                        borderColor: '#ffffff'
+                        borderColor: 'white',
+                        hoverOffset: 15
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             position: 'bottom',
                             labels: {
                                 padding: 20,
-                                usePointStyle: true
+                                usePointStyle: true,
+                                font: {
+                                    family: 'Inter',
+                                    size: 12
+                                }
                             }
                         },
                         tooltip: {
@@ -222,7 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             }
                         }
-                    }
+                    },
+                    cutout: '60%'
                 }
             });
         }
@@ -230,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Weekly Pattern Chart
         const weeklyCtx = document.getElementById('weeklyChart');
         if (weeklyCtx) {
-            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
             const weeklyData = stats.weeklyPattern;
             
             weeklyChart = new Chart(weeklyCtx, {
@@ -241,30 +269,61 @@ document.addEventListener('DOMContentLoaded', () => {
                         {
                             label: 'Attended',
                             data: days.map(day => weeklyData[day.toLowerCase()].attended),
-                            backgroundColor: '#10b981',
-                            borderRadius: 4
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            borderSkipped: false
                         },
                         {
                             label: 'Total',
                             data: days.map(day => weeklyData[day.toLowerCase()].total),
-                            backgroundColor: '#6366f1',
-                            borderRadius: 4
+                            backgroundColor: 'rgba(26, 35, 126, 0.7)',
+                            borderColor: 'rgba(26, 35, 126, 1)',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            borderSkipped: false
                         }
                     ]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         y: {
                             beginAtZero: true,
+                            grid: {
+                                color: 'rgba(26, 35, 126, 0.1)'
+                            },
                             ticks: {
-                                stepSize: 1
+                                font: {
+                                    family: 'Inter',
+                                    size: 12
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(26, 35, 126, 0.1)'
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Inter',
+                                    size: 12
+                                }
                             }
                         }
                     },
                     plugins: {
                         legend: {
-                            position: 'top'
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    family: 'Inter',
+                                    size: 12
+                                },
+                                usePointStyle: true
+                            }
                         }
                     }
                 }
@@ -272,188 +331,174 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderCalendar() {
-        const calendar = document.querySelector('.calendar');
-        if (!calendar) return;
+    function renderInsights(stats) {
+        // At-risk subjects
+        riskSubjects.innerHTML = '';
+        if (stats.atRiskSubjects.length === 0) {
+            riskSubjects.innerHTML = `
+                <div class="insight-item">
+                    <span class="insight-subject">All subjects on track!</span>
+                    <span class="insight-value text-success">✓</span>
+                </div>
+            `;
+        } else {
+            stats.atRiskSubjects.forEach(subject => {
+                const item = document.createElement('div');
+                item.className = 'insight-item';
+                item.innerHTML = `
+                    <span class="insight-subject">${subject.name}</span>
+                    <span class="insight-value text-danger">${subject.percentage}%</span>
+                `;
+                riskSubjects.appendChild(item);
+            });
+        }
         
-        // Clear previous calendar
+        // Safe to miss
+        safeToMiss.innerHTML = '';
+        if (stats.safeToMissSubjects.length === 0) {
+            safeToMiss.innerHTML = `
+                <div class="insight-item">
+                    <span class="insight-subject">No buffer available</span>
+                    <span class="insight-value text-warning">⚠</span>
+                </div>
+            `;
+        } else {
+            stats.safeToMissSubjects.forEach(subject => {
+                const item = document.createElement('div');
+                item.className = 'insight-item';
+                item.innerHTML = `
+                    <span class="insight-subject">${subject.name}</span>
+                    <span class="insight-value text-success">${subject.safe} classes</span>
+                `;
+                safeToMiss.appendChild(item);
+            });
+        }
+    }
+
+    function renderCalendar() {
         calendar.innerHTML = '';
         
-        // Create calendar header
-        const header = document.createElement('div');
-        header.className = 'calendar-header';
-        header.innerHTML = `
-            <button class="icon-btn" id="prevMonth">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <span id="currentMonth">${Utils.getMonthName(currentMonth)} ${currentYear}</span>
-            <button class="icon-btn" id="nextMonth">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-        `;
-        calendar.appendChild(header);
-        
-        // Create calendar grid
-        const grid = document.createElement('div');
-        grid.className = 'calendar-grid';
+        // Month header
+        const monthName = Utils.getMonthName(currentMonthIndex);
+        currentMonth.textContent = `${monthName} ${currentYear}`;
         
         // Day headers
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        days.forEach(day => {
-            const dayHeader = document.createElement('div');
-            dayHeader.className = 'calendar-day';
-            dayHeader.textContent = day;
-            grid.appendChild(dayHeader);
+        const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        dayHeaders.forEach(day => {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day';
+            dayElement.textContent = day;
+            calendar.appendChild(dayElement);
         });
         
         // Get first day of month
-        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-        const daysInMonth = Utils.getDaysInMonth(currentYear, currentMonth);
+        const firstDay = new Date(currentYear, currentMonthIndex, 1).getDay();
+        const daysInMonth = Utils.getDaysInMonth(currentYear, currentMonthIndex);
+        const history = Storage.getHistory();
+        const today = new Date();
         
-        // Add empty cells for days before first day
+        // Empty cells for days before first day
         for (let i = 0; i < firstDay; i++) {
             const emptyCell = document.createElement('div');
             emptyCell.className = 'calendar-date';
-            grid.appendChild(emptyCell);
+            calendar.appendChild(emptyCell);
         }
         
-        // Add days of month
-        const history = Storage.getHistory();
-        const timetable = Storage.getTimetable();
-        
+        // Days of month
         for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(currentYear, currentMonth, day);
+            const date = new Date(currentYear, currentMonthIndex, day);
             const dateStr = Utils.formatDate(date);
-            const dayName = Utils.getDayName(date).toLowerCase();
-            const hasClasses = timetable[dayName] && timetable[dayName].length > 0;
-            const isToday = Utils.isToday(date);
-            
-            const dateCell = document.createElement('div');
-            dateCell.className = 'calendar-date';
-            if (isToday) dateCell.classList.add('today');
-            if (hasClasses) dateCell.classList.add('has-class');
-            dateCell.textContent = day;
-            dateCell.title = dateStr;
-            
-            // Check attendance for this day
             const dayHistory = history.find(h => h.date === dateStr);
+            
+            const dateElement = document.createElement('div');
+            dateElement.className = 'calendar-date';
+            dateElement.textContent = day;
+            
+            // Check if today
+            if (date.getDate() === today.getDate() && 
+                date.getMonth() === today.getMonth() && 
+                date.getFullYear() === today.getFullYear()) {
+                dateElement.classList.add('today');
+            }
+            
+            // Check if has attendance data
             if (dayHistory && dayHistory.entries.length > 0) {
                 const attended = dayHistory.entries.filter(e => e.status === 'attended').length;
                 const total = dayHistory.entries.filter(e => e.status !== 'cancelled').length;
                 
                 if (total > 0) {
+                    if (attended === total) {
+                        dateElement.classList.add('has-attendance');
+                    } else if (attended > 0) {
+                        dateElement.classList.add('partial');
+                    }
+                    
+                    // Add tooltip
                     const percentage = Math.round((attended / total) * 100);
-                    dateCell.style.backgroundColor = percentage >= 75 ? '#d1fae5' : 
-                                                    percentage >= 50 ? '#fef3c7' : 
-                                                    '#fee2e2';
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'date-tooltip';
+                    tooltip.textContent = `${attended}/${total} (${percentage}%)`;
+                    dateElement.appendChild(tooltip);
                 }
             }
             
-            grid.appendChild(dateCell);
+            calendar.appendChild(dateElement);
         }
-        
-        calendar.appendChild(grid);
-        
-        // Add event listeners for navigation
-        document.getElementById('prevMonth').addEventListener('click', () => {
-            currentMonth--;
-            if (currentMonth < 0) {
-                currentMonth = 11;
-                currentYear--;
-            }
-            renderCalendar();
-            updateMonthDisplay();
-        });
-        
-        document.getElementById('nextMonth').addEventListener('click', () => {
-            currentMonth++;
-            if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
-            }
-            renderCalendar();
-            updateMonthDisplay();
-        });
-    }
-
-    function updateMonthDisplay() {
-        const currentMonthEl = document.getElementById('currentMonth');
-        if (currentMonthEl) {
-            currentMonthEl.textContent = `${Utils.getMonthName(currentMonth)} ${currentYear}`;
-        }
-    }
-
-    function exportStatistics() {
-        const stats = Storage.getStatistics();
-        const subjects = Storage.getSubjects();
-        const timetable = Storage.getTimetable();
-        
-        // Create CSV content
-        let csv = 'Subject,Attended,Total,Percentage,Target,Risk Level\n';
-        
-        stats.subjectPerformance.forEach(subject => {
-            csv += `"${subject.name}",${subject.attended},${subject.total},${subject.percentage}%,${subject.target},${subject.riskLevel}\n`;
-        });
-        
-        csv += '\nWeekly Attendance\nDay,Attended,Total,Percentage\n';
-        
-        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        days.forEach(day => {
-            const data = stats.weeklyPattern[day];
-            const percentage = data.total > 0 ? Math.round((data.attended / data.total) * 100) : 0;
-            csv += `${day.charAt(0).toUpperCase() + day.slice(1)},${data.attended},${data.total},${percentage}%\n`;
-        });
-        
-        csv += `\nOverall Statistics\nTotal Classes,${stats.totalClasses}\nAttended Classes,${stats.attendedClasses}\nOverall Percentage,${stats.overallPercentage}%\n`;
-        
-        // Create and download file
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `attendance-stats-${Utils.formatDate()}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        Utils.showToast('Statistics exported as CSV!', 'success');
     }
 
     function setupEventListeners() {
-        // Sort by change
-        if (sortBy) {
-            sortBy.addEventListener('change', () => {
-                loadStatistics();
-            });
-        }
+        // Calendar navigation
+        prevMonthBtn.addEventListener('click', () => {
+            currentMonthIndex--;
+            if (currentMonthIndex < 0) {
+                currentMonthIndex = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        });
         
-        // Export stats button
+        nextMonthBtn.addEventListener('click', () => {
+            currentMonthIndex++;
+            if (currentMonthIndex > 11) {
+                currentMonthIndex = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        });
+        
+        todayMonthBtn.addEventListener('click', () => {
+            currentDate = new Date();
+            currentYear = currentDate.getFullYear();
+            currentMonthIndex = currentDate.getMonth();
+            renderCalendar();
+        });
+        
+        // Export statistics
         if (exportStatsBtn) {
             exportStatsBtn.addEventListener('click', exportStatistics);
         }
         
-        // Backup button
-        if (backupBtn) {
-            backupBtn.addEventListener('click', () => {
+        // Export data
+        if (exportDataBtn) {
+            exportDataBtn.addEventListener('click', () => {
                 const data = Storage.exportData();
                 const blob = new Blob([data], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `attendance-backup-${Utils.formatDate()}.json`;
+                a.download = `attendo-backup-${Utils.formatDate()}.json`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                Utils.showToast('Data backed up successfully!', 'success');
+                Utils.showToast('Data exported successfully!', 'success');
             });
         }
         
-        // Restore button
-        if (restoreBtn) {
-            restoreBtn.addEventListener('click', () => {
+        // Import data
+        if (importDataBtn) {
+            importDataBtn.addEventListener('click', () => {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = '.json';
@@ -466,12 +511,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         try {
                             const result = Storage.importData(event.target.result);
                             if (result.success) {
-                                Utils.showToast('Data restored successfully!', 'success');
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1000);
+                                Utils.showToast('Data imported successfully!', 'success');
+                                setTimeout(() => location.reload(), 1000);
                             } else {
-                                Utils.showToast('Restore failed: ' + result.error, 'error');
+                                Utils.showToast('Import failed: ' + result.error, 'error');
                             }
                         } catch (error) {
                             Utils.showToast('Invalid file format', 'error');
@@ -483,47 +526,50 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        // Clear data button
+        // Clear data
         if (clearDataBtn) {
             clearDataBtn.addEventListener('click', () => {
-                if (confirm('Are you sure you want to clear all data? This cannot be undone!')) {
+                if (confirm('Are you sure? This will delete all your attendance data.')) {
                     const result = Storage.clearAllData();
                     if (result.success) {
-                        Utils.showToast('All data has been cleared', 'success');
-                        setTimeout(() => {
-                            window.location.href = 'setup.html';
-                        }, 1000);
+                        Utils.showToast('All data cleared', 'info');
+                        setTimeout(() => location.reload(), 1000);
                     }
                 }
             });
         }
+    }
+
+    function exportStatistics() {
+        const stats = calculateStatistics();
         
-        // Previous/Next month buttons
-        const prevMonthBtn = document.getElementById('prevMonth');
-        const nextMonthBtn = document.getElementById('nextMonth');
+        let csv = 'Subject,Attended,Total,Percentage,Target,Risk Level,Safe to Miss,Needed\n';
         
-        if (prevMonthBtn) {
-            prevMonthBtn.addEventListener('click', () => {
-                currentMonth--;
-                if (currentMonth < 0) {
-                    currentMonth = 11;
-                    currentYear--;
-                }
-                renderCalendar();
-                updateMonthDisplay();
-            });
-        }
+        stats.subjectPerformance.forEach(subject => {
+            csv += `"${subject.name}",${subject.attended},${subject.total},${subject.percentage}%,${subject.target},${subject.riskLevel},${subject.safe},${subject.needed}\n`;
+        });
         
-        if (nextMonthBtn) {
-            nextMonthBtn.addEventListener('click', () => {
-                currentMonth++;
-                if (currentMonth > 11) {
-                    currentMonth = 0;
-                    currentYear++;
-                }
-                renderCalendar();
-                updateMonthDisplay();
-            });
-        }
+        csv += '\nWeekly Attendance\nDay,Attended,Total,Percentage\n';
+        
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        days.forEach(day => {
+            const data = stats.weeklyPattern[day];
+            const percentage = data.total > 0 ? Math.round((data.attended / data.total) * 100) : 0;
+            csv += `${day.charAt(0).toUpperCase() + day.slice(1)},${data.attended},${data.total},${percentage}%\n`;
+        });
+        
+        csv += `\nOverall Statistics\nTotal Classes,${stats.totalClasses}\nAttended Classes,${stats.attendedClasses}\nOverall Percentage,${stats.overallPercentage}%\nTotal Subjects,${stats.totalSubjects}\n`;
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendo-stats-${Utils.formatDate()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        Utils.showToast('Statistics exported as CSV!', 'success');
     }
 });
