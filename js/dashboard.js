@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.innerHTML = `
             <div class="card-header">
                 <h3 class="subject-name">${subject.name}</h3>
-                <span class="subject-time">${getRandomTime()}</span>
+                <span class="subject-time">Class</span>
             </div>
             <div class="card-content">
                 <div class="attendance-percentage">${percentage}%</div>
@@ -356,14 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
             pending: 'Pending'
         };
         return texts[status] || status;
-    }
-
-    function getRandomTime() {
-        const hours = Math.floor(Math.random() * 5) + 8; // 8 AM to 1 PM
-        const minutes = Math.random() > 0.5 ? '00' : '30';
-        const period = hours >= 12 ? 'PM' : 'AM';
-        const displayHour = hours > 12 ? hours - 12 : hours;
-        return `${displayHour}:${minutes} ${period}`;
     }
 
     function setupEventListeners() {

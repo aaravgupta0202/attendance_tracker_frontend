@@ -258,12 +258,97 @@
             color: white;
         }
 
-        .timetable-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: var(--spacing-sm);
-            margin-bottom: var(--spacing-lg);
-        }
+        .timetable-container {
+    margin-bottom: var(--spacing-lg);
+}
+
+.timetable-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 8px;
+    scrollbar-width: thin;
+}
+
+.timetable-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.timetable-grid::-webkit-scrollbar-track {
+    background: rgba(26, 35, 126, 0.05);
+    border-radius: 3px;
+}
+
+.timetable-grid::-webkit-scrollbar-thumb {
+    background: rgba(26, 35, 126, 0.2);
+    border-radius: 3px;
+}
+
+.day-column {
+    background: var(--glass-bg);
+    border: 2px dashed var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    min-height: 120px;
+    transition: all var(--transition);
+}
+
+/* Update drag items to be horizontal scroll */
+.drag-container {
+    margin-top: var(--spacing-lg);
+}
+
+.drag-items {
+    display: flex;
+    gap: var(--spacing-sm);
+    overflow-x: auto;
+    padding-bottom: var(--spacing-sm);
+    scrollbar-width: thin;
+}
+
+.drag-items::-webkit-scrollbar {
+    height: 6px;
+}
+
+.drag-items::-webkit-scrollbar-track {
+    background: rgba(26, 35, 126, 0.05);
+    border-radius: 3px;
+}
+
+.drag-items::-webkit-scrollbar-thumb {
+    background: rgba(26, 35, 126, 0.2);
+    border-radius: 3px;
+}
+
+.drag-item {
+    flex-shrink: 0;
+    padding: 0.75rem 1rem;
+    background: var(--glass-bg);
+    border: 2px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: move;
+    transition: all var(--transition);
+    user-select: none;
+}
+
+@media (min-width: 1024px) {
+    .timetable-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        max-height: none;
+        overflow-y: visible;
+    }
+    
+    .drag-items {
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
+}
 
         .day-column {
             background: var(--glass-bg);

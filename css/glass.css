@@ -1000,37 +1000,281 @@ body {
 }
 
 /* Responsive */
+
+    /* Mobile Spacing Fixes */
 @media (max-width: 640px) {
     .app-container {
-        padding: 0 var(--spacing-sm);
+        padding: 0 12px !important;
+    }
+    
+    .main-content {
+        padding: 12px 0 !important;
+        gap: 16px !important;
+    }
+    
+    .glass-card {
+        padding: 16px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .today-stats {
+        padding: 16px !important;
     }
     
     .stats-grid {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-sm);
+        gap: 12px !important;
+    }
+    
+    .stat-item {
+        padding: 8px !important;
+    }
+    
+    .stat-value {
+        font-size: 2rem !important;
+    }
+    
+    .classes-section {
+        gap: 12px !important;
+    }
+    
+    .class-card {
+        padding: 16px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .card-content {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
+    
+    .attendance-percentage {
+        font-size: 1.8rem !important;
+        min-width: auto !important;
+    }
+    
+    .swipe-guide {
+        padding: 12px !important;
     }
     
     .guide-items {
-        grid-template-columns: 1fr;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .guide-item {
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        text-align: left !important;
+        padding: 12px !important;
+    }
+    
+    .guide-icon {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 1.2rem !important;
+        margin-right: 12px !important;
+        margin-bottom: 0 !important;
     }
     
     .quick-actions {
-        bottom: var(--spacing-sm);
-        padding: var(--spacing-xs);
+        bottom: 12px !important;
+        padding: 8px 12px !important;
+        border-radius: 20px !important;
     }
     
     .action-btn {
-        min-width: 60px;
-        padding: var(--spacing-xs) var(--spacing-sm);
+        min-width: 55px !important;
+        padding: 8px !important;
     }
     
-    .side-menu {
-        width: 280px;
+    .action-btn i {
+        font-size: 1.1rem !important;
+    }
+    
+    .action-btn span {
+        font-size: 0.7rem !important;
+    }
+    
+    /* Setup Page Mobile Fixes */
+    .setup-container {
+        padding: 12px 0 !important;
+    }
+    
+    .setup-stepper {
+        margin-bottom: 20px !important;
+        gap: 8px !important;
+    }
+    
+    .step-number {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 1rem !important;
+    }
+    
+    .step-label {
+        font-size: 0.8rem !important;
+    }
+    
+    .step-line {
+        width: 40px !important;
+    }
+    
+    .step-card {
+        padding: 16px !important;
+    }
+    
+    .step-header {
+        margin-bottom: 20px !important;
+    }
+    
+    .step-icon {
+        width: 60px !important;
+        height: 60px !important;
+        font-size: 1.5rem !important;
+    }
+    
+    .subject-form {
+        flex-direction: column !important;
+        gap: 12px !important;
+        margin-bottom: 20px !important;
+    }
+    
+    .subject-input {
+        padding: 12px !important;
+    }
+    
+    .subjects-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+    
+    .subject-card {
+        padding: 12px !important;
+    }
+    
+    .timetable-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        max-height: 400px !important;
+        overflow-y: auto !important;
+        padding-right: 4px !important;
+    }
+    
+    .day-column {
+        min-height: auto !important;
+        padding: 12px !important;
+    }
+    
+    .drag-items {
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        padding-bottom: 8px !important;
+    }
+    
+    .drag-item {
+        flex-shrink: 0 !important;
+    }
+    
+    .setup-actions {
+        flex-direction: column !important;
+        gap: 12px !important;
+        margin-top: 20px !important;
+        padding-top: 16px !important;
+    }
+    
+    /* Stats Page Mobile Fixes */
+    .stats-container {
+        padding: 12px 0 !important;
+    }
+    
+    .overview-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .overview-card {
+        padding: 16px !important;
+    }
+    
+    .charts-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .chart-card {
+        padding: 16px !important;
+    }
+    
+    .chart-container {
+        height: 250px !important;
+    }
+    
+    .subject-perf-card {
+        padding: 16px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .perf-stats {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+    
+    .calendar-card {
+        padding: 16px !important;
+        margin-bottom: 20px !important;
+    }
+    
+    .insights-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .insight-card {
+        padding: 16px !important;
+    }
+    
+    .actions-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .action-card {
+        padding: 16px !important;
+    }
+    
+    /* Toast */
+    .toast-container {
+        bottom: 80px !important;
+    }
+    
+    .toast {
+        min-width: 280px !important;
+        max-width: 280px !important;
+        padding: 12px !important;
     }
 }
 
-@media (min-width: 768px) {
+/* Tablet */
+@media (min-width: 641px) and (max-width: 768px) {
     .app-container {
-        padding: 0 var(--spacing-lg);
+        padding: 0 16px !important;
+    }
+    
+    .main-content {
+        gap: 20px !important;
+    }
+    
+    .glass-card {
+        padding: 20px !important;
+    }
+    
+    .timetable-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        max-height: 500px !important;
+        overflow-y: auto !important;
     }
 }

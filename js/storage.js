@@ -167,94 +167,107 @@ const Storage = {
     },
 
     markAttendance: (date, subjectId, status) => {
-        const history = Storage.getHistory();
-        let dateEntry = history.find(entry => entry.date === date);
-        
-        if (!dateEntry) {
-            dateEntry = { date, entries: [] };
-            history.push(dateEntry);
-        }
+    const history = Storage.getHistory();
+    let dateEntry = history.find(entry => entry.date === date);
+    
+    if (!dateEntry) {
+        dateEntry = { date, entries: [] };
+        history.push(dateEntry);
+    }
 
-        // Remove existing entry
-        dateEntry.entries = dateEntry.entries.filter(e => e.subjectId !== subjectId);
+    // Find existing entry for this subject on this date
+    const existingEntry = dateEntry.entries.find(entry => entry.subjectId === subjectId);
+    const subjects = Storage.getSubjects();
+    const subjectIndex = subjects.findIndex(s => s.id === subjectId);
+    
+    if (subjectIndex === -1) {
+        console.error('Subject not found:', subjectId);
+        return false;
+    }
+    
+    const subject = subjects[subjectIndex];
+    
+    if (existingEntry) {
+        // Update existing entry - only change status, don't increment totals
+        if (existingEntry.status !== status) {
+            // Adjust totals based on status change
+            if (existingEntry.status === 'attended' && status !== 'attended') {
+                // Was attended, now not attended
+                subject.attended = Math.max(0, subject.attended - 1);
+            } else if (existingEntry.status !== 'attended' && status === 'attended') {
+                // Was not attended, now attended
+                subject.attended += 1;
+            }
+            // For missed/cancelled, total doesn't change when updating
+            
+            existingEntry.status = status;
+            existingEntry.timestamp = new Date().toISOString();
+        }
+    } else {
+        // New entry - add to totals
+        if (status === 'attended') {
+            subject.attended += 1;
+            subject.total += 1;
+        } else if (status === 'missed') {
+            subject.total += 1;
+        }
+        // cancelled doesn't affect totals
         
-        // Add new entry
         dateEntry.entries.push({
             subjectId,
             status,
             timestamp: new Date().toISOString()
         });
+    }
+    
+    // Save updated data
+    subjects[subjectIndex] = subject;
+    Storage.saveSubjects(subjects);
+    Storage.saveHistory(history);
+    
+    return true;
+},
 
-        // Update subject totals
-        const subjects = Storage.getSubjects();
-        const subjectIndex = subjects.findIndex(s => s.id === subjectId);
-        
-        if (subjectIndex !== -1) {
-            const subject = subjects[subjectIndex];
-            
-            // Remove old status from totals
-            const oldEntry = dateEntry.entries.find(e => e.subjectId === subjectId && e.status !== status);
-            if (oldEntry) {
-                if (oldEntry.status === 'attended') {
-                    subject.attended = Math.max(0, subject.attended - 1);
-                    subject.total = Math.max(0, subject.total - 1);
-                } else if (oldEntry.status === 'missed') {
-                    subject.total = Math.max(0, subject.total - 1);
-                }
-            }
+undoLastAction: () => {
+    const history = Storage.getHistory();
+    if (history.length === 0) return null;
 
-            // Add new status to totals
-            if (status === 'attended') {
-                subject.attended += 1;
-                subject.total += 1;
-            } else if (status === 'missed') {
-                subject.total += 1;
-            }
-
-            subjects[subjectIndex] = subject;
-            Storage.saveSubjects(subjects);
-        }
-
+    const lastDateEntry = history[history.length - 1];
+    if (lastDateEntry.entries.length === 0) {
+        history.pop();
         Storage.saveHistory(history);
-        return true;
-    },
+        return null;
+    }
 
-    undoLastAction: () => {
-        const history = Storage.getHistory();
-        if (history.length === 0) return null;
-
-        const lastEntry = history[history.length - 1];
-        if (lastEntry.entries.length === 0) return null;
-
-        const lastAction = lastEntry.entries[lastEntry.entries.length - 1];
+    const lastAction = lastDateEntry.entries[lastDateEntry.entries.length - 1];
+    const subjects = Storage.getSubjects();
+    const subjectIndex = subjects.findIndex(s => s.id === lastAction.subjectId);
+    
+    if (subjectIndex !== -1) {
+        const subject = subjects[subjectIndex];
         
-        // Remove from history
-        lastEntry.entries.pop();
-        if (lastEntry.entries.length === 0) {
-            history.pop();
+        // Revert totals based on the action being undone
+        if (lastAction.status === 'attended') {
+            subject.attended = Math.max(0, subject.attended - 1);
+            subject.total = Math.max(0, subject.total - 1);
+        } else if (lastAction.status === 'missed') {
+            subject.total = Math.max(0, subject.total - 1);
         }
-
-        // Revert subject totals
-        if (lastAction.status !== 'cancelled') {
-            const subjects = Storage.getSubjects();
-            const subjectIndex = subjects.findIndex(s => s.id === lastAction.subjectId);
-            
-            if (subjectIndex !== -1) {
-                const subject = subjects[subjectIndex];
-                if (lastAction.status === 'attended') {
-                    subject.attended = Math.max(0, subject.attended - 1);
-                    subject.total = Math.max(0, subject.total - 1);
-                } else if (lastAction.status === 'missed') {
-                    subject.total = Math.max(0, subject.total - 1);
-                }
-                subjects[subjectIndex] = subject;
-                Storage.saveSubjects(subjects);
-            }
-        }
-
-        Storage.saveHistory(history);
-        return lastAction;
-    },
+        // cancelled doesn't affect totals
+        
+        subjects[subjectIndex] = subject;
+        Storage.saveSubjects(subjects);
+    }
+    
+    // Remove the entry
+    lastDateEntry.entries.pop();
+    if (lastDateEntry.entries.length === 0) {
+        history.pop();
+    }
+    
+    Storage.saveHistory(history);
+    return lastAction;
+},
 
     // Export/Import
     exportData: () => {

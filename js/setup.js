@@ -290,37 +290,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addSubjectToDay(day, subjectId) {
-        const subject = subjects.find(s => s.id === subjectId);
-        if (!subject) {
-            Utils.showToast('Subject not found', 'error');
-            return;
-        }
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) {
+        Utils.showToast('Subject not found', 'error');
+        return;
+    }
+    
+    if (!timetable[day]) {
+        timetable[day] = [];
+    }
+    
+    // Check if subject already in this day
+    const alreadyExists = timetable[day].includes(subjectId);
+    
+    if (!alreadyExists) {
+        timetable[day].push(subjectId);
+        renderTimetableGrid();
+        saveData();
+        Utils.showToast(`✓ ${subject.name} added to ${day.charAt(0).toUpperCase() + day.slice(1)}`, 'success');
+    } else {
+        Utils.showToast(`ℹ ${subject.name} is already in ${day.charAt(0).toUpperCase() + day.slice(1)}`, 'info');
+    }
+}
 
-        // Check if already in this day
-        if (!timetable[day].includes(subjectId)) {
-            timetable[day].push(subjectId);
-            renderTimetableGrid();
-            Utils.showToast(`Added ${subject.name} to ${day}`, 'success');
-        } else {
-            Utils.showToast('Subject already in this day', 'warning');
+function removeSubjectFromDay(day, subjectId) {
+    if (timetable[day]) {
+        const subject = subjects.find(s => s.id === subjectId);
+        timetable[day] = timetable[day].filter(id => id !== subjectId);
+        renderTimetableGrid();
+        saveData();
+        
+        if (subject) {
+            Utils.showToast(`✓ ${subject.name} removed from ${day.charAt(0).toUpperCase() + day.slice(1)}`, 'success');
         }
     }
-
-    // Handle remove subject from day
-    timetableGrid.addEventListener('click', (e) => {
-        if (e.target.classList.contains('remove-subject')) {
-            const subjectId = e.target.dataset.id;
-            const day = e.target.closest('.day-column').dataset.day;
-            
-            timetable[day] = timetable[day].filter(id => id !== subjectId);
-            renderTimetableGrid();
-            
-            const subject = subjects.find(s => s.id === subjectId);
-            if (subject) {
-                Utils.showToast(`Removed ${subject.name} from ${day}`, 'success');
-            }
-        }
-    });
+}
 
     // Step 3: Targets
     function renderTargets() {
