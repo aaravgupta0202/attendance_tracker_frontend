@@ -53,68 +53,41 @@ const Utils = {
 
     // Show toast notification
     showToast: (message, type = 'info', duration = 3000) => {
-    const container = document.getElementById('toastContainer');
-    if (!container) {
-        // Create container if it doesn't exist
-        const newContainer = document.createElement('div');
-        newContainer.className = 'toast-container';
-        newContainer.id = 'toastContainer';
-        document.body.appendChild(newContainer);
-    }
-    
-    const finalContainer = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    
-    const icons = {
-        success: 'fas fa-check-circle',
-        error: 'fas fa-times-circle',
-        warning: 'fas fa-exclamation-triangle',
-        info: 'fas fa-info-circle'
-    };
-    
-    const titles = {
-        success: 'Success',
-        error: 'Error',
-        warning: 'Warning',
-        info: 'Info'
-    };
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
 
-    toast.innerHTML = `
-        <i class="${icons[type] || icons.info}"></i>
-        <div class="toast-content">
-            <h4>${titles[type] || 'Info'}</h4>
-            <p>${message}</p>
-        </div>
-    `;
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icons = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-circle',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle'
+        };
 
-    finalContainer.appendChild(toast);
+        toast.innerHTML = `
+            <i class="${icons[type] || icons.info}"></i>
+            <div class="toast-content">
+                <h4>${type.charAt(0).toUpperCase() + type.slice(1)}</h4>
+                <p>${message}</p>
+            </div>
+        `;
 
-    // Remove existing toasts if there are more than 3
-    const allToasts = finalContainer.querySelectorAll('.toast');
-    if (allToasts.length > 3) {
-        allToasts[0].remove();
-    }
+        container.appendChild(toast);
 
-    // Animate in
-    setTimeout(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateY(0)';
-    }, 10);
-
-    // Remove after duration
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(20px)';
+        // Remove after duration
         setTimeout(() => {
-            if (toast.parentNode) {
-                toast.remove();
-            }
-        }, 300);
-    }, duration);
+            toast.style.animation = 'slideUp 0.3s ease reverse';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 300);
+        }, duration);
 
-    return toast;
-},
+        return toast;
+    },
 
     // Debounce function
     debounce: (func, wait) => {

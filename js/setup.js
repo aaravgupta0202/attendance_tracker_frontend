@@ -261,19 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
             item.addEventListener('dragend', () => {
                 item.classList.remove('dragging');
             });
-            
-            // Mobile tap-to-select: toggle selection on tap
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                // Toggle selection
-                const wasSelected = item.classList.contains('selected');
-                document.querySelectorAll('.drag-item').forEach(d => d.classList.remove('selected'));
-                
-                if (!wasSelected) {
-                    item.classList.add('selected');
-                    Utils.showToast('Tap a day to add this subject', 'info');
-                }
-            });
         });
 
         // Setup day columns as drop zones
@@ -297,31 +284,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (subjectId) {
                     addSubjectToDay(day, subjectId);
-                }
-            });
-            
-            // Mobile tap-to-add: if a subject is selected, add it on tap
-            column.addEventListener('click', (e) => {
-                // Check if there's a selected drag item
-                const selectedItem = document.querySelector('.drag-item.selected');
-                if (selectedItem) {
-                    const subjectId = selectedItem.dataset.id;
-                    const day = column.dataset.day;
-                    addSubjectToDay(day, subjectId);
-                    selectedItem.classList.remove('selected');
-                }
-            });
-        });
-        
-        // Setup remove buttons
-        document.querySelectorAll('.remove-subject').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const subjectId = btn.dataset.id;
-                const dayColumn = btn.closest('.day-column');
-                if (dayColumn) {
-                    const day = dayColumn.dataset.day;
-                    removeSubjectFromDay(day, subjectId);
                 }
             });
         });
