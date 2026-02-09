@@ -286,45 +286,54 @@ document.addEventListener('DOMContentLoaded', () => {
                     addSubjectToDay(day, subjectId);
                 }
             });
+            
+            // Remove subject from day
+            column.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-subject')) {
+                    const subjectId = e.target.dataset.id;
+                    const day = column.dataset.day;
+                    removeSubjectFromDay(day, subjectId);
+                }
+            });
         });
     }
 
     function addSubjectToDay(day, subjectId) {
-    const subject = subjects.find(s => s.id === subjectId);
-    if (!subject) {
-        Utils.showToast('Subject not found', 'error');
-        return;
-    }
-    
-    if (!timetable[day]) {
-        timetable[day] = [];
-    }
-    
-    // Check if subject already in this day
-    const alreadyExists = timetable[day].includes(subjectId);
-    
-    if (!alreadyExists) {
-        timetable[day].push(subjectId);
-        renderTimetableGrid();
-        saveData();
-        Utils.showToast(`✓ ${subject.name} added to ${day.charAt(0).toUpperCase() + day.slice(1)}`, 'success');
-    } else {
-        Utils.showToast(`ℹ ${subject.name} is already in ${day.charAt(0).toUpperCase() + day.slice(1)}`, 'info');
-    }
-}
-
-function removeSubjectFromDay(day, subjectId) {
-    if (timetable[day]) {
         const subject = subjects.find(s => s.id === subjectId);
-        timetable[day] = timetable[day].filter(id => id !== subjectId);
-        renderTimetableGrid();
-        saveData();
+        if (!subject) {
+            Utils.showToast('Subject not found', 'error');
+            return;
+        }
         
-        if (subject) {
-            Utils.showToast(`✓ ${subject.name} removed from ${day.charAt(0).toUpperCase() + day.slice(1)}`, 'success');
+        if (!timetable[day]) {
+            timetable[day] = [];
+        }
+        
+        // Check if subject already in this day
+        const alreadyExists = timetable[day].includes(subjectId);
+        
+        if (!alreadyExists) {
+            timetable[day].push(subjectId);
+            renderTimetableGrid();
+            saveData();
+            Utils.showToast(`✓ ${subject.name} added to ${day.charAt(0).toUpperCase() + day.slice(1)}`, 'success');
+        } else {
+            Utils.showToast(`${subject.name} is already scheduled for ${day.charAt(0).toUpperCase() + day.slice(1)}`, 'info');
         }
     }
-}
+
+    function removeSubjectFromDay(day, subjectId) {
+        if (timetable[day]) {
+            const subject = subjects.find(s => s.id === subjectId);
+            timetable[day] = timetable[day].filter(id => id !== subjectId);
+            renderTimetableGrid();
+            saveData();
+            
+            if (subject) {
+                Utils.showToast(`✓ ${subject.name} removed from ${day.charAt(0).toUpperCase() + day.slice(1)}`, 'success');
+            }
+        }
+    }
 
     // Step 3: Targets
     function renderTargets() {

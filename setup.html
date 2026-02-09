@@ -259,103 +259,24 @@
         }
 
         .timetable-container {
-    margin-bottom: var(--spacing-lg);
-}
+            margin-bottom: var(--spacing-lg);
+        }
 
-.timetable-grid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    max-height: 500px;
-    overflow-y: auto;
-    padding-right: 8px;
-    scrollbar-width: thin;
-}
-
-.timetable-grid::-webkit-scrollbar {
-    width: 6px;
-}
-
-.timetable-grid::-webkit-scrollbar-track {
-    background: rgba(26, 35, 126, 0.05);
-    border-radius: 3px;
-}
-
-.timetable-grid::-webkit-scrollbar-thumb {
-    background: rgba(26, 35, 126, 0.2);
-    border-radius: 3px;
-}
-
-.day-column {
-    background: var(--glass-bg);
-    border: 2px dashed var(--glass-border);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-md);
-    min-height: 120px;
-    transition: all var(--transition);
-}
-
-/* Update drag items to be horizontal scroll */
-.drag-container {
-    margin-top: var(--spacing-lg);
-}
-
-.drag-items {
-    display: flex;
-    gap: var(--spacing-sm);
-    overflow-x: auto;
-    padding-bottom: var(--spacing-sm);
-    scrollbar-width: thin;
-}
-
-.drag-items::-webkit-scrollbar {
-    height: 6px;
-}
-
-.drag-items::-webkit-scrollbar-track {
-    background: rgba(26, 35, 126, 0.05);
-    border-radius: 3px;
-}
-
-.drag-items::-webkit-scrollbar-thumb {
-    background: rgba(26, 35, 126, 0.2);
-    border-radius: 3px;
-}
-
-.drag-item {
-    flex-shrink: 0;
-    padding: 0.75rem 1rem;
-    background: var(--glass-bg);
-    border: 2px solid var(--glass-border);
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: move;
-    transition: all var(--transition);
-    user-select: none;
-}
-
-@media (min-width: 1024px) {
-    .timetable-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        max-height: none;
-        overflow-y: visible;
-    }
-    
-    .drag-items {
-        flex-wrap: wrap;
-        overflow-x: visible;
-    }
-}
+        .timetable-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            max-height: none;
+            overflow-y: visible;
+            padding-right: 0;
+        }
 
         .day-column {
             background: var(--glass-bg);
             border: 2px dashed var(--glass-border);
             border-radius: var(--radius-lg);
-            padding: var(--spacing-md);
-            min-height: 200px;
+            padding: var(--spacing-sm);
+            min-height: 120px;
             transition: all var(--transition);
         }
 
@@ -368,29 +289,32 @@
         .day-header {
             text-align: center;
             font-weight: 600;
-            margin-bottom: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
             color: var(--primary);
-            padding-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-xs);
             border-bottom: 1px solid var(--glass-border);
+            font-size: 0.85rem;
         }
 
         .day-subjects {
             display: flex;
             flex-direction: column;
             gap: var(--spacing-xs);
-            min-height: 100px;
+            min-height: 80px;
         }
 
         .day-subject {
             background: var(--primary);
             color: white;
-            padding: 0.5rem;
+            padding: 0.4rem 0.3rem;
             border-radius: var(--radius-sm);
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             text-align: center;
             cursor: move;
             position: relative;
             transition: all var(--transition);
+            word-break: break-word;
+            line-height: 1.2;
         }
 
         .day-subject:hover {
@@ -402,8 +326,8 @@
             position: absolute;
             top: -6px;
             right: -6px;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             background: var(--danger);
             color: white;
@@ -425,8 +349,8 @@
             text-align: center;
             color: var(--primary-light);
             font-style: italic;
-            padding: var(--spacing-md);
-            font-size: 0.9rem;
+            padding: var(--spacing-sm);
+            font-size: 0.8rem;
         }
 
         .available-subjects {
@@ -551,15 +475,50 @@
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
         }
 
+        /* Mobile adjustments for timetable */
         @media (max-width: 768px) {
             .timetable-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(7, 1fr);
+                gap: 4px;
             }
             
-            .subjects-grid {
-                grid-template-columns: 1fr;
+            .day-column {
+                padding: 6px 3px;
+                min-height: 90px;
             }
             
+            .day-header {
+                font-size: 0.7rem;
+                margin-bottom: 6px;
+            }
+            
+            .day-subject {
+                font-size: 0.6rem;
+                padding: 3px 2px;
+            }
+            
+            .remove-subject {
+                width: 14px;
+                height: 14px;
+                font-size: 8px;
+                top: -4px;
+                right: -4px;
+                opacity: 1;
+            }
+            
+            .drag-items {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 8px;
+            }
+            
+            .drag-item {
+                flex-shrink: 0;
+            }
+        }
+
+        @media (max-width: 480px) {
             .setup-stepper {
                 flex-wrap: wrap;
             }
@@ -567,15 +526,13 @@
             .step-line {
                 display: none;
             }
-        }
-
-        @media (max-width: 480px) {
-            .timetable-grid {
-                grid-template-columns: 1fr;
-            }
             
             .subject-form {
                 flex-direction: column;
+            }
+            
+            .subjects-grid {
+                grid-template-columns: 1fr;
             }
             
             .setup-actions {
@@ -673,8 +630,10 @@
                             <p>Drag subjects from the list below to the days when you have classes.</p>
                         </div>
 
-                        <div class="timetable-grid" id="timetableGrid">
-                            <!-- Days will be generated here -->
+                        <div class="timetable-container">
+                            <div class="timetable-grid" id="timetableGrid">
+                                <!-- Days will be generated here -->
+                            </div>
                         </div>
 
                         <div class="available-subjects">

@@ -20,6 +20,18 @@ const Utils = {
         return days[date.getDay()];
     },
 
+    // Get month name
+    getMonthName: (monthIndex) => {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+        return months[monthIndex];
+    },
+
+    // Get days in month
+    getDaysInMonth: (year, month) => {
+        return new Date(year, month + 1, 0).getDate();
+    },
+
     // Format date for display
     formatDisplayDate: (date = new Date()) => {
         const d = new Date(date);

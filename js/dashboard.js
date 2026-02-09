@@ -23,10 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // State
     let undoStack = [];
-    let isDragging = false;
-    let startX = 0;
-    let currentX = 0;
-    let currentCard = null;
 
     // Initialize
     init();
